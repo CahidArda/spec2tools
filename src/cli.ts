@@ -155,7 +155,7 @@ async function startChatLoop(session: Session): Promise<void> {
   });
 
   const prompt = (): void => {
-    rl.question(chalk.cyan('> '), (input) => {
+    rl.question(chalk.cyan('> '), async (input) => {
       const trimmedInput = input.trim();
 
       if (!trimmedInput) {
@@ -163,17 +163,21 @@ async function startChatLoop(session: Session): Promise<void> {
         return;
       }
 
-      handleInput(trimmedInput, session, agent)
-        .catch((error) => {
-          console.error(
-            chalk.red(
-              `Error: ${error instanceof Error ? error.message : String(error)}`
-            )
-          );
-        })
-        .finally(() => {
-          prompt();
-        });
+      // Pause readline during async operations to prevent corruption
+      rl.pause();
+
+      try {
+        await handleInput(trimmedInput, session, agent);
+      } catch (error) {
+        console.error(
+          chalk.red(
+            `Error: ${error instanceof Error ? error.message : String(error)}`
+          )
+        );
+      } finally {
+        rl.resume();
+        prompt();
+      }
     });
   };
 

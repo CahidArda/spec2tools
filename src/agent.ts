@@ -21,7 +21,7 @@ export class Agent {
 
   constructor(config: AgentConfig) {
     this.tools = config.tools;
-    this.model = config.model || 'gpt-4o';
+    this.model = config.model || 'gpt-5.1-chat-latest';
     this.maxSteps = config.maxSteps || 10;
     this.conversationHistory = [];
   }
