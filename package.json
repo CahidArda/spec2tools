@@ -1,6 +1,6 @@
 {
   "name": "spec2tools",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Dynamically convert OpenAPI specs into AI agent tools at runtime",
   "type": "module",
   "main": "dist/main.js",
@@ -18,6 +18,10 @@
     "dist/**/*.js",
     "dist/**/*.d.ts"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CahidArda/spec2tools.git"
+  },
   "scripts": {
     "build": "tsc",
     "postbuild": "chmod +x dist/index.js",
