@@ -22,19 +22,20 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@ai-sdk/anthropic": "^1.0.0",
-    "ai": "^3.0.0",
+    "@ai-sdk/openai": "^3.0.25",
+    "ai": "^6.0.68",
     "chalk": "^5.3.0",
-    "commander": "^12.1.0",
-    "express": "^4.21.0",
+    "commander": "^14.0.0",
+    "dotenv": "^17.2.3",
+    "express": "^5.0.0",
     "open": "^10.1.0",
     "ora": "^8.1.0",
     "yaml": "^2.5.0",
-    "zod": "^3.23.0",
-    "zod-to-json-schema": "^3.23.0"
+    "zod": "^3.24.0",
+    "zod-to-json-schema": "^3.24.0"
   },
   "devDependencies": {
-    "@types/express": "^4.17.21",
+    "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
     "typescript": "^5.6.0"
   },

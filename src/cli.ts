@@ -155,7 +155,7 @@ async function startChatLoop(session: Session): Promise<void> {
   });
 
   const prompt = (): void => {
-    rl.question(chalk.cyan('> '), async (input) => {
+    rl.question(chalk.cyan('> '), (input) => {
       const trimmedInput = input.trim();
 
       if (!trimmedInput) {
@@ -163,17 +163,17 @@ async function startChatLoop(session: Session): Promise<void> {
         return;
       }
 
-      try {
-        await handleInput(trimmedInput, session, agent);
-      } catch (error) {
-        console.error(
-          chalk.red(
-            `Error: ${error instanceof Error ? error.message : String(error)}`
-          )
-        );
-      }
-
-      prompt();
+      handleInput(trimmedInput, session, agent)
+        .catch((error) => {
+          console.error(
+            chalk.red(
+              `Error: ${error instanceof Error ? error.message : String(error)}`
+            )
+          );
+        })
+        .finally(() => {
+          prompt();
+        });
     });
   };
 
@@ -295,7 +295,9 @@ async function callTool(tools: Tool[], args: string[]): Promise<void> {
     if (error instanceof ToolExecutionError) {
       console.error(chalk.red(error.message));
     } else {
-      throw error;
+      console.error(
+        chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`)
+      );
     }
   }
 }

@@ -1,11 +1,12 @@
 import express from 'express';
 import open from 'open';
+import crypto from 'crypto';
 import { createServer, Server } from 'http';
 import { AuthConfig } from './types.js';
 import { AuthenticationError } from './errors.js';
 import * as readline from 'readline';
 
-const CALLBACK_PORT = 3000;
+const CALLBACK_PORT = 54321;
 const CALLBACK_PATH = '/callback';
 
 interface TokenResponse {
@@ -15,12 +16,20 @@ interface TokenResponse {
   expires_in?: number;
 }
 
+interface ClientRegistrationResponse {
+  client_id: string;
+  client_secret?: string;
+  client_id_issued_at?: number;
+  client_secret_expires_at?: number;
+}
+
 export class AuthManager {
   private authConfig: AuthConfig;
   private accessToken?: string;
   private refreshToken?: string;
   private clientId?: string;
   private clientSecret?: string;
+  private codeVerifier?: string;
 
   constructor(authConfig: AuthConfig) {
     this.authConfig = authConfig;
@@ -156,8 +165,8 @@ export class AuthManager {
       );
     }
 
-    // Get client credentials
-    await this.getClientCredentials();
+    // Register client dynamically
+    await this.registerClient();
 
     // Start local callback server
     const authCode = await this.startCallbackServerAndAuthorize();
@@ -167,30 +176,40 @@ export class AuthManager {
   }
 
   /**
-   * Prompt for OAuth2 client credentials
+   * Register OAuth2 client dynamically
    */
-  private async getClientCredentials(): Promise<void> {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
+  private async registerClient(): Promise<void> {
+    // Derive registration URL from token URL (replace /token with /register)
+    const registrationUrl = this.authConfig.tokenUrl!.replace(/\/token$/, '/register');
+    const redirectUri = `http://127.0.0.1:${CALLBACK_PORT}${CALLBACK_PATH}`;
+
+    console.log('Registering OAuth2 client...');
+
+    const response = await fetch(registrationUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        client_name: 'OpenAPI Agent CLI',
+        redirect_uris: [redirectUri],
+        grant_types: ['authorization_code'],
+        token_endpoint_auth_method: 'none',
+      }),
     });
 
-    this.clientId = await new Promise<string>((resolve) => {
-      rl.question('Enter OAuth2 Client ID: ', (answer) => {
-        resolve(answer.trim());
-      });
-    });
-
-    this.clientSecret = await new Promise<string>((resolve) => {
-      rl.question('Enter OAuth2 Client Secret: ', (answer) => {
-        rl.close();
-        resolve(answer.trim());
-      });
-    });
-
-    if (!this.clientId || !this.clientSecret) {
-      throw new AuthenticationError('Client ID and Client Secret are required');
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new AuthenticationError(
+        `Client registration failed: ${response.status} ${errorText}`
+      );
     }
+
+    const registration = (await response.json()) as ClientRegistrationResponse;
+    this.clientId = registration.client_id;
+    this.clientSecret = registration.client_secret;
+
+    console.log('Client registered successfully.');
   }
 
   /**
@@ -250,8 +269,8 @@ export class AuthManager {
 
       server = createServer(app);
 
-      server.listen(CALLBACK_PORT, () => {
-        const redirectUri = `http://localhost:${CALLBACK_PORT}${CALLBACK_PATH}`;
+      server.listen(CALLBACK_PORT, '127.0.0.1', () => {
+        const redirectUri = `http://127.0.0.1:${CALLBACK_PORT}${CALLBACK_PATH}`;
         const authUrl = this.buildAuthorizationUrl(redirectUri);
 
         console.log('\nAuthentication required. Opening browser...');
@@ -283,21 +302,43 @@ export class AuthManager {
   }
 
   /**
+   * Generate PKCE code verifier and challenge
+   */
+  private generatePKCE(): { verifier: string; challenge: string } {
+    // Generate random code verifier (43-128 characters)
+    const verifier = crypto.randomBytes(32).toString('base64url');
+
+    // Create code challenge using SHA-256
+    const challenge = crypto
+      .createHash('sha256')
+      .update(verifier)
+      .digest('base64url');
+
+    return { verifier, challenge };
+  }
+
+  /**
    * Build the OAuth2 authorization URL
    */
   private buildAuthorizationUrl(redirectUri: string): string {
     const url = new URL(this.authConfig.authorizationUrl!);
 
+    // Generate PKCE
+    const pkce = this.generatePKCE();
+    this.codeVerifier = pkce.verifier;
+
     url.searchParams.set('response_type', 'code');
     url.searchParams.set('client_id', this.clientId!);
     url.searchParams.set('redirect_uri', redirectUri);
+    url.searchParams.set('code_challenge', pkce.challenge);
+    url.searchParams.set('code_challenge_method', 'S256');
 
     if (this.authConfig.scopes && this.authConfig.scopes.length > 0) {
       url.searchParams.set('scope', this.authConfig.scopes.join(' '));
     }
 
     // Generate state for CSRF protection
-    const state = Math.random().toString(36).substring(2, 15);
+    const state = crypto.randomBytes(16).toString('base64url');
     url.searchParams.set('state', state);
 
     return url.toString();
@@ -307,15 +348,20 @@ export class AuthManager {
    * Exchange authorization code for access token
    */
   private async exchangeCodeForToken(code: string): Promise<void> {
-    const redirectUri = `http://localhost:${CALLBACK_PORT}${CALLBACK_PATH}`;
+    const redirectUri = `http://127.0.0.1:${CALLBACK_PORT}${CALLBACK_PATH}`;
 
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
       code,
       redirect_uri: redirectUri,
       client_id: this.clientId!,
-      client_secret: this.clientSecret!,
+      code_verifier: this.codeVerifier!,
     });
+
+    // Only include client_secret if set (public clients don't have one)
+    if (this.clientSecret) {
+      params.set('client_secret', this.clientSecret);
+    }
 
     const response = await fetch(this.authConfig.tokenUrl!, {
       method: 'POST',

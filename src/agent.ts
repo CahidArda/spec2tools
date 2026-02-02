@@ -1,5 +1,5 @@
-import { generateText, CoreMessage, CoreTool } from 'ai';
-import { anthropic } from '@ai-sdk/anthropic';
+import { generateText, tool, stepCountIs, ModelMessage } from 'ai';
+import { openai } from '@ai-sdk/openai';
 import { Tool } from './types.js';
 import { ToolExecutionError } from './errors.js';
 import chalk from 'chalk';
@@ -17,11 +17,11 @@ export class Agent {
   private tools: Tool[];
   private model: string;
   private maxSteps: number;
-  private conversationHistory: CoreMessage[];
+  private conversationHistory: ModelMessage[];
 
   constructor(config: AgentConfig) {
     this.tools = config.tools;
-    this.model = config.model || 'claude-sonnet-4-20250514';
+    this.model = config.model || 'gpt-4o';
     this.maxSteps = config.maxSteps || 10;
     this.conversationHistory = [];
   }
@@ -53,16 +53,16 @@ export class Agent {
 
     try {
       // Build AI SDK tools from our tool definitions
-      const aiTools: Record<string, CoreTool> = {};
+      const aiTools: Parameters<typeof generateText>[0]['tools'] = {};
 
-      for (const tool of this.tools) {
-        const toolExecute = tool.execute;
-        const toolName = tool.name;
+      for (const t of this.tools) {
+        const toolExecute = t.execute;
+        const toolName = t.name;
 
-        aiTools[tool.name] = {
-          description: tool.description,
-          parameters: tool.parameters,
-          execute: async (params: Record<string, unknown>) => {
+        aiTools![t.name] = tool({
+          description: t.description,
+          inputSchema: t.parameters,
+          execute: async (params) => {
             console.log(
               chalk.dim(`\n[Calling ${toolName} with ${JSON.stringify(params)}]`)
             );
@@ -81,7 +81,7 @@ export class Agent {
               throw error;
             }
           },
-        } as CoreTool;
+        });
       }
 
       // Build system prompt
@@ -92,11 +92,11 @@ If a tool call fails, explain the error to the user.`;
 
       // Generate response with tool use
       const result = await generateText({
-        model: anthropic(this.model) as Parameters<typeof generateText>[0]['model'],
+        model: openai(this.model),
         system: systemPrompt,
         messages: this.conversationHistory,
         tools: aiTools,
-        maxSteps: this.maxSteps,
+        stopWhen: stepCountIs(this.maxSteps),
       });
 
       // Add assistant response to history
