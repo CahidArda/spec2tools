@@ -1,0 +1,122 @@
+openapi: 3.0.0
+info:
+  title: Context7 API
+  description: Get up-to-date documentation and code examples for any library.
+  version: 2.0.0
+servers:
+  - url: https://context7.com/api
+security:
+  - clerkAuth: []
+paths:
+  /v2/libs/search:
+    get:
+      operationId: searchLibraries
+      summary: Search for libraries
+      description: Search for libraries by name with intelligent ranking based on your query.
+      parameters:
+        - name: libraryName
+          in: query
+          required: true
+          description: Library name to search for
+          schema:
+            type: string
+        - name: query
+          in: query
+          required: true
+          description: Your question or task for relevance ranking
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        title:
+                          type: string
+                        description:
+                          type: string
+
+  /v2/context:
+    get:
+      operationId: getContext
+      summary: Get documentation context
+      description: Retrieve relevant code snippets and documentation for a query.
+      parameters:
+        - name: libraryId
+          in: query
+          required: true
+          description: Library ID in format /owner/repo
+          schema:
+            type: string
+        - name: query
+          in: query
+          required: true
+          description: Your question or task
+          schema:
+            type: string
+        - name: type
+          in: query
+          required: false
+          description: Response format
+          schema:
+            type: string
+            enum: [json, txt]
+            default: txt
+      responses:
+        '200':
+          description: Documentation context
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  codeSnippets:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        codeTitle:
+                          type: string
+                        codeDescription:
+                          type: string
+                        codeLanguage:
+                          type: string
+                        codeList:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              language:
+                                type: string
+                              code:
+                                type: string
+                  infoSnippets:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        content:
+                          type: string
+            text/plain:
+              schema:
+                type: string
+
+components:
+  securitySchemes:
+    clerkAuth:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://context7.com/api/oauth/authorize
+          tokenUrl: https://context7.com/api/oauth/token
+          scopes: {}

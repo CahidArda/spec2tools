@@ -1,0 +1,174 @@
+openapi: 3.0.0
+info:
+  title: Sample User API
+  version: 1.0.0
+  description: A simple API for managing users
+
+servers:
+  - url: https://jsonplaceholder.typicode.com
+    description: JSONPlaceholder test API
+
+paths:
+  /users:
+    get:
+      summary: List all users
+      operationId: listUsers
+      parameters:
+        - name: _limit
+          in: query
+          description: Maximum number of users to return
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: A list of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+    post:
+      summary: Create a new user
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+              properties:
+                name:
+                  type: string
+                  description: User's full name
+                email:
+                  type: string
+                  description: User's email address
+                phone:
+                  type: string
+                  description: User's phone number
+      responses:
+        '201':
+          description: User created successfully
+
+  /users/{id}:
+    get:
+      summary: Get a user by ID
+      operationId: getUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The user ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User details
+
+    put:
+      summary: Update a user
+      operationId: updateUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The user ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: User's full name
+                email:
+                  type: string
+                  description: User's email address
+      responses:
+        '200':
+          description: User updated successfully
+
+    delete:
+      summary: Delete a user
+      operationId: deleteUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The user ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User deleted successfully
+
+  /posts:
+    get:
+      summary: List all posts
+      operationId: listPosts
+      parameters:
+        - name: userId
+          in: query
+          description: Filter by user ID
+          schema:
+            type: integer
+        - name: _limit
+          in: query
+          description: Maximum number of posts to return
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A list of posts
+
+    post:
+      summary: Create a new post
+      operationId: createPost
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - body
+                - userId
+              properties:
+                title:
+                  type: string
+                  description: Post title
+                body:
+                  type: string
+                  description: Post content
+                userId:
+                  type: integer
+                  description: ID of the user creating the post
+      responses:
+        '201':
+          description: Post created successfully
+
+  /posts/{id}:
+    get:
+      summary: Get a post by ID
+      operationId: getPost
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The post ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Post details
