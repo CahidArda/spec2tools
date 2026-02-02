@@ -1,0 +1,78 @@
+openapi: 3.0.0
+info:
+  title: Authenticated User API
+  version: 1.0.0
+  description: An API with OAuth2 authentication via Clerk
+
+servers:
+  - url: https://api.example.com/v1
+    description: Production API
+
+components:
+  securitySchemes:
+    clerkAuth:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://your-app.clerk.accounts.dev/oauth/authorize
+          tokenUrl: https://your-app.clerk.accounts.dev/oauth/token
+          scopes:
+            read: Read access to resources
+            write: Write access to resources
+
+security:
+  - clerkAuth: [read, write]
+
+paths:
+  /users:
+    get:
+      summary: List all users
+      operationId: listUsers
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of users to return
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: A list of users
+
+    post:
+      summary: Create a new user
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+              properties:
+                name:
+                  type: string
+                  description: User's full name
+                email:
+                  type: string
+                  description: User's email address
+      responses:
+        '201':
+          description: User created successfully
+
+  /users/{id}:
+    get:
+      summary: Get a user by ID
+      operationId: getUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The user ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User details

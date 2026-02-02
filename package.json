@@ -1,0 +1,44 @@
+{
+  "name": "openapi-agent-cli",
+  "version": "1.0.0",
+  "description": "CLI tool that dynamically converts OpenAPI specifications into callable AI agent tools",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "agent-cli": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "openapi",
+    "cli",
+    "ai",
+    "agent",
+    "tools"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@ai-sdk/anthropic": "^1.0.0",
+    "ai": "^3.0.0",
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "express": "^4.21.0",
+    "open": "^10.1.0",
+    "ora": "^8.1.0",
+    "yaml": "^2.5.0",
+    "zod": "^3.23.0",
+    "zod-to-json-schema": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
