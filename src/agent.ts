@@ -4,6 +4,19 @@ import { Tool } from './types.js';
 import { ToolExecutionError } from './errors.js';
 import chalk from 'chalk';
 
+const MAX_OUTPUT_LENGTH = 500;
+
+/**
+ * Trim a string if it exceeds the maximum length
+ */
+function trimOutput(value: unknown): string {
+  const str = typeof value === 'string' ? value : JSON.stringify(value);
+  if (str.length > MAX_OUTPUT_LENGTH) {
+    return str.substring(0, MAX_OUTPUT_LENGTH) + '...';
+  }
+  return str;
+}
+
 interface AgentConfig {
   tools: Tool[];
   model?: string;
@@ -70,7 +83,7 @@ export class Agent {
             try {
               const result = await toolExecute(params);
               console.log(
-                chalk.dim(`[${toolName} returned: ${JSON.stringify(result)}]\n`)
+                chalk.dim(`[${toolName} returned: ${trimOutput(result)}]\n`)
               );
               return result;
             } catch (error) {
