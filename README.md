@@ -1,6 +1,16 @@
-# OpenAPI Agent CLI
+# Spec2Tools
 
-A CLI tool that dynamically converts OpenAPI specifications into callable AI agent tools, with built-in authentication support.
+Dynamically convert OpenAPI specs into AI agent tools at runtime—no code generation, no MCP server.
+
+## Thesis
+
+You have a server. You have an OpenAPI spec. Now, with all the MCP hype, you're told you need to build *another* server—an MCP server—just so AI agents can call your API. You look it up: define tools, maintain handlers, keep it in sync with your actual API. But wait... you already described your API in OpenAPI. Why write it twice?
+
+**Spec2Tools is the alternative.** A minimal agent harness that reads your OpenAPI spec and exposes endpoints as tools—no MCP server, no code generation, no maintenance burden.
+
+## How It Differs
+
+Unlike [ai-tool-maker](https://github.com/nihaocami/ai-tool-maker) which generates static code from OpenAPI specs, Spec2Tools connects to APIs dynamically at runtime. Point it at any OpenAPI spec and start chatting immediately—no build step, no generated files.
 
 ## Features
 
@@ -24,16 +34,16 @@ npm run build
 
 ```bash
 # With a remote OpenAPI spec URL
-npx agent-cli start --spec https://api.example.com/openapi.json
+npx spec2tools start --spec https://api.example.com/openapi.json
 
 # With a local file
-npx agent-cli start --spec ./openapi.yaml
+npx spec2tools start --spec ./openapi.yaml
 
 # Skip authentication
-npx agent-cli start --spec ./openapi.yaml --no-auth
+npx spec2tools start --spec ./openapi.yaml --no-auth
 
 # Provide token directly
-npx agent-cli start --spec ./openapi.yaml --token "your-access-token"
+npx spec2tools start --spec ./openapi.yaml --token "your-access-token"
 ```
 
 ### Chat Mode

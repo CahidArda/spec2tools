@@ -27,8 +27,8 @@ export function createCLI(): Command {
   const program = new Command();
 
   program
-    .name('agent-cli')
-    .description('CLI tool that converts OpenAPI specs into AI agent tools')
+    .name('spec2tools')
+    .description('Dynamically convert OpenAPI specs into AI agent tools at runtime')
     .version(VERSION);
 
   program
@@ -140,7 +140,7 @@ async function startChatLoop(session: Session): Promise<void> {
   // Initialize agent
   const agent = new Agent({ tools: session.tools });
 
-  console.log(chalk.bold('\n--- Agent CLI ---'));
+  console.log(chalk.bold('\n--- Spec2Tools ---'));
   console.log(chalk.dim('Type your message or use special commands:'));
   console.log(chalk.dim('  /tools  - List available tools'));
   console.log(chalk.dim('  /call   - Call a tool directly'));

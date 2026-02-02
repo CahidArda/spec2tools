@@ -1,11 +1,11 @@
 {
-  "name": "openapi-agent-cli",
+  "name": "spec2tools",
   "version": "1.0.0",
-  "description": "CLI tool that dynamically converts OpenAPI specifications into callable AI agent tools",
+  "description": "Dynamically convert OpenAPI specs into AI agent tools at runtime",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "agent-cli": "./dist/index.js"
+    "spec2tools": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",
