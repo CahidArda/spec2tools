@@ -82,7 +82,13 @@ Created user successfully: { id: "123", name: "John", email: "john@example.com" 
 
 ### Programmatic Usage
 
-You can also import `createTools` directly in your code to get AI SDK-compatible tools:
+Install with:
+
+```bash
+npm install spec2tools
+```
+
+You can import `createTools` directly in your code to get AI SDK-compatible tools:
 
 ```ts
 import { createTools } from 'spec2tools';
@@ -167,6 +173,21 @@ See the `examples/` directory for sample OpenAPI specifications:
             - AI SDK with tools
             - Handle chat loop
             - Execute tool calls
+```
+
+## Development
+
+```bash
+git clone https://github.com/ArdaOzworksAt/spec2tools.git
+cd spec2tools
+npm install
+npm run build
+```
+
+Run locally:
+
+```bash
+npm start -- start --spec ./examples/sample-api.yaml
 ```
 
 ## License
