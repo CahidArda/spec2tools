@@ -22,13 +22,6 @@ Unlike [ai-tool-maker](https://github.com/nihaocami/ai-tool-maker) which generat
 - Support for GET, POST, PUT, PATCH, DELETE operations
 - Import `createTools()` to get AI SDK-compatible tools directly
 
-## Installation
-
-```bash
-npm install
-npm run build
-```
-
 ## Usage
 
 ### Start the Agent
