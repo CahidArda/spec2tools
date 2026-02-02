@@ -20,6 +20,7 @@ Unlike [ai-tool-maker](https://github.com/nihaocami/ai-tool-maker) which generat
 - Interactive chat mode with AI agent
 - Direct tool invocation via CLI commands
 - Support for GET, POST, PUT, PATCH, DELETE operations
+- Import `createTools()` to get AI SDK-compatible tools directly
 
 ## Installation
 
@@ -83,6 +84,26 @@ Created user successfully: { id: "123", name: "John", email: "john@example.com" 
 # Exit
 > /exit
 ```
+
+### Programmatic Usage
+
+You can also import `createTools` directly in your code to get AI SDK-compatible tools:
+
+```ts
+import { createTools } from 'spec2tools';
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const tools = await createTools({ spec: './openapi.yaml' });
+
+const result = await generateText({
+  model: openai('gpt-4o'),
+  tools,
+  prompt: 'List all users',
+});
+```
+
+> **Note:** `createTools()` only works with APIs that don't require authentication. For authenticated APIs, use the CLI.
 
 ## Supported OpenAPI Features
 

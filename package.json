@@ -1,9 +1,16 @@
 {
   "name": "spec2tools",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Dynamically convert OpenAPI specs into AI agent tools at runtime",
   "type": "module",
-  "main": "dist/index.js",
+  "main": "dist/main.js",
+  "types": "dist/main.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/main.js",
+      "types": "./dist/main.d.ts"
+    }
+  },
   "bin": {
     "spec2tools": "./dist/index.js"
   },
@@ -18,7 +25,10 @@
     "cli",
     "ai",
     "agent",
-    "tools"
+    "tools",
+    "ai-sdk",
+    "mcp",
+    "vercel-ai"
   ],
   "license": "MIT",
   "dependencies": {
