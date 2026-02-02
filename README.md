@@ -175,7 +175,7 @@ See the `examples/` directory for sample OpenAPI specifications:
 ## Development
 
 ```bash
-git clone https://github.com/ArdaOzworksAt/spec2tools.git
+git clone https://github.com/CahidArda/spec2tools.git
 cd spec2tools
 npm install
 npm run build
