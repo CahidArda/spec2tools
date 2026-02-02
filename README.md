@@ -81,7 +81,8 @@ Created user successfully: { id: "123", name: "John", email: "john@example.com" 
 - Path parameters (string, number, boolean)
 - Query parameters (string, number, boolean)
 - Request body with simple JSON schemas (primitives, flat objects)
-- Security schemes: OAuth2 (authorization code), API Key, Bearer token
+- Security schemes: OAuth2 (authorization code with PKCE), API Key, Bearer token
+- OAuth2 Dynamic Client Registration (auto-registers client with the auth server)
 
 ### Not Supported (throws error)
 - Nested objects beyond 1 level
@@ -92,10 +93,16 @@ Created user successfully: { id: "123", name: "John", email: "john@example.com" 
 
 ## Environment Variables
 
-Set the `ANTHROPIC_API_KEY` environment variable for AI functionality:
+Set the `OPENAI_API_KEY` environment variable for AI functionality:
 
 ```bash
-export ANTHROPIC_API_KEY=your-api-key
+export OPENAI_API_KEY=your-api-key
+```
+
+You can also create a `.env` file in the project root:
+
+```
+OPENAI_API_KEY=your-api-key
 ```
 
 ## Examples
@@ -104,6 +111,7 @@ See the `examples/` directory for sample OpenAPI specifications:
 
 - `sample-api.yaml` - Simple API without authentication
 - `authenticated-api.yaml` - API with OAuth2 authentication
+- `context7.yaml` - Context7 API with OAuth2 (PKCE + dynamic client registration)
 
 ## Architecture
 
@@ -120,8 +128,9 @@ See the `examples/` directory for sample OpenAPI specifications:
        │
        ├──> Auth Manager
        │    - Detect auth type
-       │    - Handle OAuth flow
-       │    - Store/refresh tokens
+       │    - Handle OAuth flow (PKCE)
+       │    - Dynamic client registration
+       │    - Store tokens
        │
        ├──> Tool Executor
        │    - Execute HTTP requests
