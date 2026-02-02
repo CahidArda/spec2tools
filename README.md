@@ -92,16 +92,19 @@ You can import `createTools` directly in your code to get AI SDK-compatible tool
 
 ```ts
 import { createTools } from 'spec2tools';
-import { generateText } from 'ai';
+import { generateText, stepCountIs } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
-const tools = await createTools({ spec: './openapi.yaml' });
+const tools = await createTools({ spec: '../new/examples/sample-api.yaml' });
 
 const result = await generateText({
   model: openai('gpt-4o'),
   tools,
   prompt: 'List all users',
+  stopWhen: stepCountIs(3)
 });
+
+console.log(result.text);
 ```
 
 > **Note:** `createTools()` only works with APIs that don't require authentication. For authenticated APIs, use the CLI.
