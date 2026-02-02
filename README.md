@@ -26,6 +26,14 @@ Unlike examples like [ai-tool-maker](https://github.com/nihaocami/ai-tool-maker)
 
 ## Usage
 
+### Set Environment Variables
+
+Define a `.env` file and define the `OPENAI_API_KEY` environment variable:
+
+```
+OPENAI_API_KEY=your-api-key
+```
+
 ### Start the Agent
 
 ```bash
@@ -125,20 +133,6 @@ console.log(result.text);
 - `anyOf`, `oneOf`, `allOf` schemas
 - File uploads
 - `$ref` references
-
-## Environment Variables
-
-Set the `OPENAI_API_KEY` environment variable for AI functionality:
-
-```bash
-export OPENAI_API_KEY=your-api-key
-```
-
-You can also create a `.env` file in the project root:
-
-```
-OPENAI_API_KEY=your-api-key
-```
 
 ## Examples
 
