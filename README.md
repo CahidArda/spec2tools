@@ -4,13 +4,15 @@ Dynamically convert OpenAPI specs into AI agent tools at runtime—no code gener
 
 ## Thesis
 
-You have a server. You have an OpenAPI spec. Now, with all the MCP hype, you're told you need to build *another* server—an MCP server—just so AI agents can call your API. You look it up: define tools, maintain handlers, keep it in sync with your actual API. But wait... you already described your API in OpenAPI. Why write it twice?
+You have a server. You have an OpenAPI spec. Now, with all the MCP hype, you're told you need to build *another* server—an MCP server—just so AI agents can call your API. You look it up: define tools, maintain handlers, keep it in sync with your actual API. But wait... you already described your API in OpenAPI. Why do we need to describe it to the agent twice?
 
 **Spec2Tools is the alternative.** A minimal agent harness that reads your OpenAPI spec and exposes endpoints as tools—no MCP server, no code generation, no maintenance burden.
 
+Right now, we build+deploy MCP servers to make APIs "agent-ready". But if agent harnesses supported loading tools from specs, we could remove the maintenance burden of dedicated MCP servers entirely.
+
 ## How It Differs
 
-Unlike [ai-tool-maker](https://github.com/nihaocami/ai-tool-maker) which generates static code from OpenAPI specs, Spec2Tools connects to APIs dynamically at runtime. Point it at any OpenAPI spec and start chatting immediately—no build step, no generated files.
+Unlike examples like [ai-tool-maker](https://github.com/nihaocami/ai-tool-maker) which generates static code from OpenAPI specs, Spec2Tools connects to APIs dynamically at runtime. Point it at any OpenAPI spec and start chatting immediately—no build step, no generated files.
 
 ## Features
 
