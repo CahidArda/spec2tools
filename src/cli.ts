@@ -21,7 +21,7 @@ import {
   SpecLoadError,
 } from './errors.js';
 
-const VERSION = '1.0.0';
+const VERSION = '0.1.5';
 
 export function createCLI(): Command {
   const program = new Command();

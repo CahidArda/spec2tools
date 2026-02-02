@@ -1,6 +1,6 @@
 {
   "name": "spec2tools",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Dynamically convert OpenAPI specs into AI agent tools at runtime",
   "type": "module",
   "main": "dist/main.js",
