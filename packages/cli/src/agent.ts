@@ -1,7 +1,6 @@
 import { generateText, tool, stepCountIs, ModelMessage } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { Tool } from './types.js';
-import { ToolExecutionError } from './errors.js';
+import { type Tool, ToolExecutionError } from '@spec2tools/core';
 import chalk from 'chalk';
 
 const MAX_OUTPUT_LENGTH = 500;
