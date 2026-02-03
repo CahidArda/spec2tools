@@ -103,7 +103,7 @@ import { createTools } from 'spec2tools';
 import { generateText, stepCountIs } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
-const tools = await createTools({ spec: '../new/examples/sample-api.yaml' });
+const tools = await createTools({ spec: './sample-api.yaml' });
 
 const result = await generateText({
   model: openai('gpt-4o'),
