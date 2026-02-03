@@ -1,7 +1,32 @@
+# Dependencies
 node_modules/
+
+# Build outputs
 dist/
+*.tsbuildinfo
+
+# Logs
 *.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Environment
 .env
 .env.local
+.env.*.local
+
+# OS
 .DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Package tarballs
 *.tgz
+
+# Turbo (if added later)
+.turbo/
