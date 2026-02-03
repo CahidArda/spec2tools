@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Tool, HttpMethod } from './types.js';
+import { Tool, HttpMethod, AuthConfig } from './types.js';
 import { ToolExecutionError } from './errors.js';
 import { AuthManager } from './auth-manager.js';
 
@@ -9,6 +9,7 @@ interface ToolDefinition {
   parameters: z.ZodObject<z.ZodRawShape>;
   httpMethod: HttpMethod;
   path: string;
+  authConfig?: AuthConfig;
 }
 
 /**
@@ -55,17 +56,23 @@ function createExecutor(
         }
       }
 
+      // Check if this tool requires auth (respects operation-level security)
+      // Tool-level authConfig overrides the global authConfig
+      const toolRequiresAuth = authManager.requiresAuth(tool.authConfig);
+
       // Add auth query params if needed
-      const authQueryParams = authManager.getAuthQueryParams();
-      for (const [key, value] of Object.entries(authQueryParams)) {
-        urlObj.searchParams.set(key, value);
+      if (toolRequiresAuth) {
+        const authQueryParams = authManager.getAuthQueryParams(tool.authConfig);
+        for (const [key, value] of Object.entries(authQueryParams)) {
+          urlObj.searchParams.set(key, value);
+        }
       }
 
       url = urlObj.toString();
 
       // Build request options
       const headers: Record<string, string> = {
-        ...authManager.getAuthHeaders(),
+        ...(toolRequiresAuth ? authManager.getAuthHeaders(tool.authConfig) : {}),
       };
 
       const fetchOptions: RequestInit = {
@@ -98,9 +105,27 @@ function createExecutor(
       }
 
       if (!response.ok) {
-        throw new Error(
-          `HTTP ${response.status}: ${JSON.stringify(responseData)}`
-        );
+        // Build detailed error message
+        const errorDetails = [
+          `HTTP ${response.status} ${response.statusText}`,
+          `URL: ${tool.httpMethod} ${url}`,
+          `Response: ${typeof responseData === 'string' ? responseData : JSON.stringify(responseData, null, 2)}`
+        ];
+
+        // Add helpful context for common errors
+        if (response.status === 401) {
+          errorDetails.push('Authentication failed. Check your API key/token.');
+        } else if (response.status === 403) {
+          errorDetails.push('Access forbidden. Verify your permissions.');
+        } else if (response.status === 404) {
+          errorDetails.push('Resource not found.');
+        } else if (response.status === 429) {
+          errorDetails.push('Rate limit exceeded. Try again later.');
+        } else if (response.status >= 500) {
+          errorDetails.push('Server error. The API service may be experiencing issues.');
+        }
+
+        throw new Error(errorDetails.join('\n'));
       }
 
       return responseData;

@@ -24,22 +24,23 @@ interface ClientRegistrationResponse {
 }
 
 export class AuthManager {
-  private authConfig: AuthConfig;
+  private globalAuthConfig: AuthConfig;
   private accessToken?: string;
   private refreshToken?: string;
   private clientId?: string;
   private clientSecret?: string;
   private codeVerifier?: string;
 
-  constructor(authConfig: AuthConfig) {
-    this.authConfig = authConfig;
+  constructor(globalAuthConfig: AuthConfig) {
+    this.globalAuthConfig = globalAuthConfig;
   }
 
   /**
    * Check if authentication is required
    */
-  requiresAuth(): boolean {
-    return this.authConfig.type !== 'none';
+  requiresAuth(authConfig?: AuthConfig): boolean {
+    const config = authConfig ?? this.globalAuthConfig;
+    return config.type !== 'none';
   }
 
   /**
@@ -51,20 +52,26 @@ export class AuthManager {
 
   /**
    * Get authorization headers for requests
+   * @param authConfig Optional tool-specific auth config that overrides the global config
    */
-  getAuthHeaders(): Record<string, string> {
+  getAuthHeaders(authConfig?: AuthConfig): Record<string, string> {
     if (!this.accessToken) {
       return {};
     }
 
-    switch (this.authConfig.type) {
+    const config = authConfig ?? this.globalAuthConfig;
+
+    switch (config.type) {
       case 'oauth2':
       case 'bearer':
         return { Authorization: `Bearer ${this.accessToken}` };
 
+      case 'basic':
+        return { Authorization: `Basic ${this.accessToken}` };
+
       case 'apiKey':
-        if (this.authConfig.apiKeyIn === 'header' && this.authConfig.apiKeyHeader) {
-          return { [this.authConfig.apiKeyHeader]: this.accessToken };
+        if (config.apiKeyIn === 'header' && config.apiKeyHeader) {
+          return { [config.apiKeyHeader]: this.accessToken };
         }
         return {};
 
@@ -75,34 +82,44 @@ export class AuthManager {
 
   /**
    * Get query parameters for API key auth
+   * @param authConfig Optional tool-specific auth config that overrides the global config
    */
-  getAuthQueryParams(): Record<string, string> {
+  getAuthQueryParams(authConfig?: AuthConfig): Record<string, string> {
+    const config = authConfig ?? this.globalAuthConfig;
+
     if (
-      this.authConfig.type === 'apiKey' &&
-      this.authConfig.apiKeyIn === 'query' &&
-      this.authConfig.apiKeyHeader &&
+      config.type === 'apiKey' &&
+      config.apiKeyIn === 'query' &&
+      config.apiKeyHeader &&
       this.accessToken
     ) {
-      return { [this.authConfig.apiKeyHeader]: this.accessToken };
+      return { [config.apiKeyHeader]: this.accessToken };
     }
     return {};
   }
 
   /**
    * Perform authentication based on config type
+   * @param authConfig Optional tool-specific auth config that overrides the global config
    */
-  async authenticate(): Promise<void> {
-    switch (this.authConfig.type) {
+  async authenticate(authConfig?: AuthConfig): Promise<void> {
+    const config = authConfig ?? this.globalAuthConfig;
+
+    switch (config.type) {
       case 'oauth2':
-        await this.performOAuth2Flow();
+        await this.performOAuth2Flow(config);
         break;
 
       case 'apiKey':
-        await this.promptForApiKey();
+        await this.promptForApiKey(config);
         break;
 
       case 'bearer':
         await this.promptForBearerToken();
+        break;
+
+      case 'basic':
+        await this.promptForBasicAuth();
         break;
 
       case 'none':
@@ -114,13 +131,13 @@ export class AuthManager {
   /**
    * Prompt user for API key
    */
-  private async promptForApiKey(): Promise<void> {
+  private async promptForApiKey(config: AuthConfig): Promise<void> {
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
     });
 
-    const headerName = this.authConfig.apiKeyHeader || 'API-Key';
+    const headerName = config.apiKeyHeader || 'API-Key';
 
     this.accessToken = await new Promise<string>((resolve) => {
       rl.question(`Enter your API key (${headerName}): `, (answer) => {
@@ -156,31 +173,60 @@ export class AuthManager {
   }
 
   /**
+   * Prompt user for basic auth credentials
+   */
+  private async promptForBasicAuth(): Promise<void> {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    const question = (prompt: string): Promise<string> => {
+      return new Promise((resolve) => {
+        rl.question(prompt, (answer) => {
+          resolve(answer.trim());
+        });
+      });
+    };
+
+    const username = await question('Enter username: ');
+    const password = await question('Enter password: ');
+    rl.close();
+
+    if (!username || !password) {
+      throw new AuthenticationError('Username and password are required for Basic auth');
+    }
+
+    // Base64 encode the credentials
+    this.accessToken = Buffer.from(`${username}:${password}`).toString('base64');
+  }
+
+  /**
    * Perform OAuth2 authorization code flow
    */
-  private async performOAuth2Flow(): Promise<void> {
-    if (!this.authConfig.authorizationUrl || !this.authConfig.tokenUrl) {
+  private async performOAuth2Flow(config: AuthConfig): Promise<void> {
+    if (!config.authorizationUrl || !config.tokenUrl) {
       throw new AuthenticationError(
         'OAuth2 requires authorizationUrl and tokenUrl'
       );
     }
 
     // Register client dynamically
-    await this.registerClient();
+    await this.registerClient(config);
 
     // Start local callback server
-    const authCode = await this.startCallbackServerAndAuthorize();
+    const authCode = await this.startCallbackServerAndAuthorize(config);
 
     // Exchange code for token
-    await this.exchangeCodeForToken(authCode);
+    await this.exchangeCodeForToken(authCode, config);
   }
 
   /**
    * Register OAuth2 client dynamically
    */
-  private async registerClient(): Promise<void> {
+  private async registerClient(config: AuthConfig): Promise<void> {
     // Derive registration URL from token URL (replace /token with /register)
-    const registrationUrl = this.authConfig.tokenUrl!.replace(/\/token$/, '/register');
+    const registrationUrl = config.tokenUrl!.replace(/\/token$/, '/register');
     const redirectUri = `http://127.0.0.1:${CALLBACK_PORT}${CALLBACK_PATH}`;
 
     console.log('Registering OAuth2 client...');
@@ -215,7 +261,7 @@ export class AuthManager {
   /**
    * Start local callback server and initiate authorization
    */
-  private async startCallbackServerAndAuthorize(): Promise<string> {
+  private async startCallbackServerAndAuthorize(config: AuthConfig): Promise<string> {
     return new Promise<string>((resolve, reject) => {
       const app = express();
       let server: Server;
@@ -271,7 +317,7 @@ export class AuthManager {
 
       server.listen(CALLBACK_PORT, '127.0.0.1', () => {
         const redirectUri = `http://127.0.0.1:${CALLBACK_PORT}${CALLBACK_PATH}`;
-        const authUrl = this.buildAuthorizationUrl(redirectUri);
+        const authUrl = this.buildAuthorizationUrl(redirectUri, config);
 
         console.log('\nAuthentication required. Opening browser...');
         console.log(`If browser doesn't open, visit: ${authUrl}\n`);
@@ -320,8 +366,8 @@ export class AuthManager {
   /**
    * Build the OAuth2 authorization URL
    */
-  private buildAuthorizationUrl(redirectUri: string): string {
-    const url = new URL(this.authConfig.authorizationUrl!);
+  private buildAuthorizationUrl(redirectUri: string, config: AuthConfig): string {
+    const url = new URL(config.authorizationUrl!);
 
     // Generate PKCE
     const pkce = this.generatePKCE();
@@ -333,8 +379,8 @@ export class AuthManager {
     url.searchParams.set('code_challenge', pkce.challenge);
     url.searchParams.set('code_challenge_method', 'S256');
 
-    if (this.authConfig.scopes && this.authConfig.scopes.length > 0) {
-      url.searchParams.set('scope', this.authConfig.scopes.join(' '));
+    if (config.scopes && config.scopes.length > 0) {
+      url.searchParams.set('scope', config.scopes.join(' '));
     }
 
     // Generate state for CSRF protection
@@ -347,7 +393,7 @@ export class AuthManager {
   /**
    * Exchange authorization code for access token
    */
-  private async exchangeCodeForToken(code: string): Promise<void> {
+  private async exchangeCodeForToken(code: string, config: AuthConfig): Promise<void> {
     const redirectUri = `http://127.0.0.1:${CALLBACK_PORT}${CALLBACK_PATH}`;
 
     const params = new URLSearchParams({
@@ -363,7 +409,7 @@ export class AuthManager {
       params.set('client_secret', this.clientSecret);
     }
 
-    const response = await fetch(this.authConfig.tokenUrl!, {
+    const response = await fetch(config.tokenUrl!, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',

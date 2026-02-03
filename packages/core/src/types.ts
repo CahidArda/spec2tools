@@ -9,9 +9,10 @@ export interface Tool {
   execute: (params: unknown) => Promise<unknown>;
   httpMethod: HttpMethod;
   path: string;
+  authConfig?: AuthConfig;
 }
 
-export type AuthType = 'oauth2' | 'apiKey' | 'bearer' | 'none';
+export type AuthType = 'oauth2' | 'apiKey' | 'bearer' | 'basic' | 'none';
 
 export interface AuthConfig {
   type: AuthType;

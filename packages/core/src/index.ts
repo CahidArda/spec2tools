@@ -29,6 +29,7 @@ export {
   loadOpenAPISpec,
   extractBaseUrl,
   extractAuthConfig,
+  extractOperationAuthConfig,
   parseOperations,
   formatToolSchema,
   formatToolSignature,

@@ -61,15 +61,50 @@ export function extractBaseUrl(spec: OpenAPISpec): string {
  * Extract authentication configuration from security schemes
  */
 export function extractAuthConfig(spec: OpenAPISpec): AuthConfig {
-  const securitySchemes = spec.components?.securitySchemes;
-  const globalSecurity = spec.security;
+  return extractAuthConfigFromSecurity(
+    spec.security,
+    spec.components?.securitySchemes
+  );
+}
 
-  if (!securitySchemes || !globalSecurity || globalSecurity.length === 0) {
+/**
+ * Extract authentication configuration for a specific operation
+ * Uses operation-level security if defined, otherwise falls back to global security
+ */
+export function extractOperationAuthConfig(
+  spec: OpenAPISpec,
+  operation: Operation
+): AuthConfig {
+  // If operation has its own security field, use it (even if empty array = no auth)
+  if (operation.security !== undefined) {
+    return extractAuthConfigFromSecurity(
+      operation.security,
+      spec.components?.securitySchemes
+    );
+  }
+
+  // Fall back to global security
+  return extractAuthConfig(spec);
+}
+
+/**
+ * Extract auth config from a security requirement array
+ */
+function extractAuthConfigFromSecurity(
+  security: Array<Record<string, string[]>> | undefined,
+  securitySchemes: Record<string, SecurityScheme> | undefined
+): AuthConfig {
+  // Empty security array means explicitly no auth required
+  if (security !== undefined && security.length === 0) {
+    return { type: 'none' };
+  }
+
+  if (!securitySchemes || !security || security.length === 0) {
     return { type: 'none' };
   }
 
   // Get the first security requirement
-  const securityReq = globalSecurity[0];
+  const securityReq = security[0];
   const schemeName = Object.keys(securityReq)[0];
   const scheme = securitySchemes[schemeName];
 
@@ -110,6 +145,10 @@ function parseSecurityScheme(
 
   if (scheme.type === 'http' && scheme.scheme === 'bearer') {
     return { type: 'bearer' };
+  }
+
+  if (scheme.type === 'http' && scheme.scheme === 'basic') {
+    return { type: 'basic' };
   }
 
   return { type: 'none' };
@@ -376,12 +415,16 @@ export function parseOperations(spec: OpenAPISpec): Omit<Tool, 'execute'>[] {
       const combinedShape = { ...parameterShape, ...bodyShape };
       const parameters = z.object(combinedShape);
 
+      // Extract operation-specific auth config
+      const authConfig = extractOperationAuthConfig(spec, operation);
+
       tools.push({
         name: operationId,
         description: operation.summary || operation.description || `${method} ${path}`,
         parameters,
         httpMethod: method,
         path,
+        authConfig,
       });
     }
   }
