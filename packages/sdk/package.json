@@ -1,7 +1,7 @@
 {
-  "name": "@spec2tools/core",
+  "name": "@spec2tools/sdk",
   "version": "0.1.0",
-  "description": "Core utilities for OpenAPI parsing and authentication",
+  "description": "Create AI SDK tools from OpenAPI specifications",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -22,25 +22,27 @@
   },
   "keywords": [
     "openapi",
-    "parser",
-    "authentication",
-    "tools"
+    "ai",
+    "agent",
+    "tools",
+    "ai-sdk",
+    "vercel-ai"
   ],
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/CahidArda/spec2tools.git",
-    "directory": "packages/core"
+    "directory": "packages/sdk"
   },
   "dependencies": {
-    "express": "^5.0.0",
-    "open": "^10.1.0",
-    "yaml": "^2.5.0",
-    "zod": "^3.24.0",
-    "zod-to-json-schema": "^3.24.0"
+    "@spec2tools/core": "workspace:*",
+    "ai": "^6.0.68",
+    "zod": "^3.24.0"
+  },
+  "peerDependencies": {
+    "zod": "^3.24.0"
   },
   "devDependencies": {
-    "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
     "typescript": "^5.6.0"
   },

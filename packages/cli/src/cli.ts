@@ -9,19 +9,19 @@ import {
   parseOperations,
   formatToolSchema,
   formatToolSignature,
-} from './openapi-parser.js';
-import { AuthManager } from './auth-manager.js';
-import { createExecutableTools, executeToolByName } from './tool-executor.js';
-import { Agent } from './agent.js';
-import { Session, Tool } from './types.js';
-import {
+  AuthManager,
+  createExecutableTools,
+  executeToolByName,
   UnsupportedSchemaError,
   AuthenticationError,
   ToolExecutionError,
   SpecLoadError,
-} from './errors.js';
+  type Session,
+  type Tool,
+} from '@spec2tools/core';
+import { Agent } from './agent.js';
 
-const VERSION = '0.1.5';
+const VERSION = '0.1.6';
 
 export function createCLI(): Command {
   const program = new Command();

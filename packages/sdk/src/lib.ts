@@ -4,9 +4,9 @@ import {
   extractBaseUrl,
   extractAuthConfig,
   parseOperations,
-} from './openapi-parser.js';
-import { AuthManager } from './auth-manager.js';
-import { ToolExecutionError } from './errors.js';
+  AuthManager,
+  ToolExecutionError,
+} from '@spec2tools/core';
 
 type ToolSet = NonNullable<Parameters<typeof generateText>[0]['tools']>;
 
@@ -20,7 +20,7 @@ export interface Spec2ToolsOptions {
  *
  * @example
  * ```ts
- * import { createTools } from 'spec2tools';
+ * import { createTools } from '@spec2tools/sdk';
  * import { generateText } from 'ai';
  * import { openai } from '@ai-sdk/openai';
  *
@@ -47,7 +47,7 @@ export async function createTools(
     throw new Error(
       `This API requires authentication (${authConfig.type}). ` +
       `The createTools() function only supports APIs without authentication. ` +
-      `Use the CLI for authenticated APIs: npx spec2tools start --spec ${options.spec}`
+      `Use the CLI for authenticated APIs: npx @spec2tools/cli start --spec ${options.spec}`
     );
   }
 
