@@ -36,7 +36,7 @@ export function createCLI(): Command {
     .description('Start the agent with an OpenAPI specification')
     .requiredOption('-s, --spec <path>', 'Path or URL to OpenAPI specification')
     .option('--no-auth', 'Skip authentication even if required by spec')
-    .option('--token <token>', 'Provide access token directly')
+    .option('--api-key <key>', 'Provide API key or access token directly')
     .action(async (options) => {
       await startAgent(options);
     });
@@ -47,7 +47,7 @@ export function createCLI(): Command {
 interface StartOptions {
   spec: string;
   auth: boolean;
-  token?: string;
+  apiKey?: string;
 }
 
 async function startAgent(options: StartOptions): Promise<void> {
@@ -80,9 +80,9 @@ async function startAgent(options: StartOptions): Promise<void> {
     const authManager = new AuthManager(authConfig);
 
     // Handle authentication
-    if (options.token) {
-      authManager.setAccessToken(options.token);
-      console.log(chalk.green('Using provided access token'));
+    if (options.apiKey) {
+      authManager.setAccessToken(options.apiKey);
+      console.log(chalk.green('Using provided API key'));
     } else if (options.auth && authManager.requiresAuth()) {
       console.log(
         chalk.yellow(`\nAuthentication required (${authConfig.type})`)
