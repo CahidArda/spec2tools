@@ -1,10 +1,13 @@
 {
-  "name": "@spec2tools/core",
-  "version": "0.1.1",
-  "description": "Core utilities for OpenAPI parsing and authentication",
+  "name": "@spec2tools/stdio-mcp",
+  "version": "0.1.0",
+  "description": "MCP server that exposes OpenAPI endpoints as tools via stdio transport",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "spec2tools-mcp": "./dist/index.js"
+  },
   "exports": {
     ".": {
       "import": "./dist/index.js",
@@ -17,30 +20,32 @@
   ],
   "scripts": {
     "build": "tsc",
+    "postbuild": "chmod +x dist/index.js",
     "dev": "tsc --watch",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
     "openapi",
-    "parser",
-    "authentication",
-    "tools"
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "agent",
+    "tools",
+    "stdio"
   ],
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/CahidArda/spec2tools.git",
-    "directory": "packages/core"
+    "directory": "packages/stdio-mcp"
   },
   "dependencies": {
-    "express": "^5.0.0",
-    "open": "^10.1.0",
-    "yaml": "^2.5.0",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@spec2tools/core": "workspace:*",
     "zod": "^3.24.0",
     "zod-to-json-schema": "^3.24.0"
   },
   "devDependencies": {
-    "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
     "typescript": "^5.6.0"
   },
