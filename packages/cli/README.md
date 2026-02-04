@@ -36,8 +36,8 @@ npx @spec2tools/cli start --spec ./openapi.yaml
 # Skip authentication
 npx @spec2tools/cli start --spec ./openapi.yaml --no-auth
 
-# Provide token directly
-npx @spec2tools/cli start --spec ./openapi.yaml --token "your-access-token"
+# Provide API key directly
+npx @spec2tools/cli start --spec ./openapi.yaml --api-key "your-api-key"
 ```
 
 ### Chat Mode

@@ -155,13 +155,55 @@ function parseSecurityScheme(
 }
 
 /**
+ * Resolve a $ref to its actual schema object
+ */
+function resolveRef(
+  ref: string,
+  spec: OpenAPISpec,
+  visited: Set<string> = new Set()
+): SchemaObject {
+  // Detect circular references
+  if (visited.has(ref)) {
+    throw new UnsupportedSchemaError(ref, 'Circular $ref detected');
+  }
+  visited.add(ref);
+
+  // Only support #/components/schemas/ references
+  if (!ref.startsWith('#/components/schemas/')) {
+    throw new UnsupportedSchemaError(ref, 'Only #/components/schemas/ $refs are supported');
+  }
+
+  const schemaName = ref.replace('#/components/schemas/', '');
+  const schema = spec.components?.schemas?.[schemaName];
+
+  if (!schema) {
+    throw new UnsupportedSchemaError(ref, `Schema "${schemaName}" not found in components`);
+  }
+
+  // If the resolved schema has a $ref, resolve it recursively
+  if (schema.$ref) {
+    return resolveRef(schema.$ref, spec, visited);
+  }
+
+  return schema;
+}
+
+/**
  * Convert an OpenAPI schema to a Zod schema
  */
 function schemaToZod(
   schema: SchemaObject,
   path: string,
-  depth: number = 0
+  spec: OpenAPISpec,
+  depth: number = 0,
+  visited: Set<string> = new Set()
 ): z.ZodTypeAny {
+  // Resolve $ref if present
+  if (schema.$ref) {
+    const resolvedSchema = resolveRef(schema.$ref, spec, new Set(visited));
+    return schemaToZod(resolvedSchema, path, spec, depth, visited);
+  }
+
   // Check for unsupported features
   if (schema.anyOf) {
     throw new UnsupportedSchemaError(path, 'anyOf is not supported');
@@ -172,9 +214,6 @@ function schemaToZod(
   if (schema.allOf) {
     throw new UnsupportedSchemaError(path, 'allOf is not supported');
   }
-  if (schema.$ref) {
-    throw new UnsupportedSchemaError(path, '$ref is not supported');
-  }
 
   // Handle array types
   if (schema.type === 'array') {
@@ -184,7 +223,7 @@ function schemaToZod(
     if (schema.items.type === 'object') {
       throw new UnsupportedSchemaError(path, 'Arrays of objects are not supported');
     }
-    const itemSchema = schemaToZod(schema.items, `${path}.items`, depth);
+    const itemSchema = schemaToZod(schema.items, `${path}.items`, spec, depth, visited);
     let arraySchema = z.array(itemSchema);
     if (schema.description) {
       arraySchema = arraySchema.describe(schema.description);
@@ -206,7 +245,7 @@ function schemaToZod(
     const shape: Record<string, z.ZodTypeAny> = {};
 
     for (const [propName, propSchema] of Object.entries(properties)) {
-      let zodProp = schemaToZod(propSchema, `${path}.${propName}`, depth + 1);
+      let zodProp = schemaToZod(propSchema, `${path}.${propName}`, spec, depth + 1, visited);
 
       if (!required.includes(propName)) {
         zodProp = zodProp.optional();
@@ -263,9 +302,12 @@ function schemaToZod(
  */
 function buildParametersSchema(
   parameters: Parameter[],
-  operationId: string
-): Record<string, z.ZodTypeAny> {
+  operationId: string,
+  spec: OpenAPISpec
+): { shape: Record<string, z.ZodTypeAny>; pathParams: Set<string>; queryParams: Set<string> } {
   const shape: Record<string, z.ZodTypeAny> = {};
+  const pathParams = new Set<string>();
+  const queryParams = new Set<string>();
 
   for (const param of parameters) {
     if (param.in !== 'path' && param.in !== 'query') {
@@ -278,6 +320,7 @@ function buildParametersSchema(
       paramSchema = schemaToZod(
         param.schema,
         `${operationId}.parameters.${param.name}`,
+        spec,
         0
       );
     } else {
@@ -293,9 +336,16 @@ function buildParametersSchema(
     }
 
     shape[param.name] = paramSchema;
+
+    // Track which set this parameter belongs to
+    if (param.in === 'path') {
+      pathParams.add(param.name);
+    } else if (param.in === 'query') {
+      queryParams.add(param.name);
+    }
   }
 
-  return shape;
+  return { shape, pathParams, queryParams };
 }
 
 /**
@@ -303,15 +353,19 @@ function buildParametersSchema(
  */
 function buildRequestBodySchema(
   operation: Operation,
-  operationId: string
-): Record<string, z.ZodTypeAny> {
+  operationId: string,
+  spec: OpenAPISpec
+): { shape: Record<string, z.ZodTypeAny>; bodyParams: Set<string> } {
+  const shape: Record<string, z.ZodTypeAny> = {};
+  const bodyParams = new Set<string>();
+
   if (!operation.requestBody?.content) {
-    return {};
+    return { shape, bodyParams };
   }
 
   const jsonContent = operation.requestBody.content['application/json'];
   if (!jsonContent?.schema) {
-    return {};
+    return { shape, bodyParams };
   }
 
   const schema = jsonContent.schema;
@@ -324,11 +378,16 @@ function buildRequestBodySchema(
     );
   }
 
+  // Resolve $ref if present
+  let resolvedSchema = schema;
+  if (schema.$ref) {
+    resolvedSchema = resolveRef(schema.$ref, spec);
+  }
+
   // For object schemas, flatten properties into the parameter shape
-  if (schema.type === 'object' || schema.properties) {
-    const properties = schema.properties || {};
-    const required = schema.required || [];
-    const shape: Record<string, z.ZodTypeAny> = {};
+  if (resolvedSchema.type === 'object' || resolvedSchema.properties) {
+    const properties = resolvedSchema.properties || {};
+    const required = resolvedSchema.required || [];
 
     for (const [propName, propSchema] of Object.entries(properties)) {
       // Check for file upload in properties
@@ -345,6 +404,7 @@ function buildRequestBodySchema(
       let zodProp = schemaToZod(
         propSchema,
         `${operationId}.requestBody.${propName}`,
+        spec,
         1
       );
 
@@ -353,12 +413,11 @@ function buildRequestBodySchema(
       }
 
       shape[propName] = zodProp;
+      bodyParams.add(propName); // Track that this is a body parameter
     }
-
-    return shape;
   }
 
-  return {};
+  return { shape, bodyParams };
 }
 
 /**
@@ -409,10 +468,10 @@ export function parseOperations(spec: OpenAPISpec): Omit<Tool, 'execute'>[] {
       ];
 
       // Build combined schema from parameters and request body
-      const parameterShape = buildParametersSchema(allParameters, operationId);
-      const bodyShape = buildRequestBodySchema(operation, operationId);
+      const parametersResult = buildParametersSchema(allParameters, operationId, spec);
+      const bodyResult = buildRequestBodySchema(operation, operationId, spec);
 
-      const combinedShape = { ...parameterShape, ...bodyShape };
+      const combinedShape = { ...parametersResult.shape, ...bodyResult.shape };
       const parameters = z.object(combinedShape);
 
       // Extract operation-specific auth config
@@ -425,6 +484,11 @@ export function parseOperations(spec: OpenAPISpec): Omit<Tool, 'execute'>[] {
         httpMethod: method,
         path,
         authConfig,
+        parameterMetadata: {
+          pathParams: parametersResult.pathParams,
+          queryParams: parametersResult.queryParams,
+          bodyParams: bodyResult.bodyParams,
+        },
       });
     }
   }

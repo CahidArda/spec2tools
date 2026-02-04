@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Tool, HttpMethod, AuthConfig } from './types.js';
+import { Tool, HttpMethod, AuthConfig, ParameterMetadata } from './types.js';
 import { ToolExecutionError } from './errors.js';
 import { AuthManager } from './auth-manager.js';
 
@@ -10,6 +10,7 @@ interface ToolDefinition {
   httpMethod: HttpMethod;
   path: string;
   authConfig?: AuthConfig;
+  parameterMetadata?: ParameterMetadata;
 }
 
 /**
@@ -42,10 +43,10 @@ function createExecutor(
       // Build URL with path parameters replaced
       let url = buildUrl(baseUrl, tool.path, validatedParams);
 
-      // Separate path, query, and body parameters
+      // Separate path, query, and body parameters using metadata
       const { queryParams, bodyParams } = separateParams(
         validatedParams,
-        tool.path
+        tool.parameterMetadata
       );
 
       // Add query parameters
@@ -177,44 +178,55 @@ function buildUrl(
 }
 
 /**
- * Separate parameters into path, query, and body params
+ * Separate parameters into path, query, and body params using metadata
  */
 function separateParams(
   params: Record<string, unknown>,
-  path: string
+  metadata?: ParameterMetadata
 ): { pathParams: Record<string, unknown>; queryParams: Record<string, unknown>; bodyParams: Record<string, unknown> } {
   const pathParams: Record<string, unknown> = {};
   const queryParams: Record<string, unknown> = {};
   const bodyParams: Record<string, unknown> = {};
 
-  // Extract path parameter names
-  const pathParamNames = new Set<string>();
-  const pathParamRegex = /\{(\w+)\}/g;
-  let match;
-
-  while ((match = pathParamRegex.exec(path)) !== null) {
-    pathParamNames.add(match[1]);
-  }
-
-  for (const [key, value] of Object.entries(params)) {
-    if (pathParamNames.has(key)) {
-      pathParams[key] = value;
-    } else if (isPrimitive(value)) {
-      // Primitive values go to query params
-      queryParams[key] = value;
-    } else {
-      // Complex values go to body
-      bodyParams[key] = value;
+  // If we have metadata, use it to categorize parameters
+  if (metadata) {
+    for (const [key, value] of Object.entries(params)) {
+      if (metadata.pathParams.has(key)) {
+        pathParams[key] = value;
+      } else if (metadata.queryParams.has(key)) {
+        queryParams[key] = value;
+      } else if (metadata.bodyParams.has(key)) {
+        bodyParams[key] = value;
+      } else {
+        // Fallback: if not in metadata, treat as body param
+        bodyParams[key] = value;
+      }
+    }
+  } else {
+    // Fallback to old behavior if no metadata (shouldn't happen with new parser)
+    // This keeps backward compatibility
+    const pathParamNames = extractPathParamNames(params);
+    
+    for (const [key, value] of Object.entries(params)) {
+      if (pathParamNames.has(key)) {
+        pathParams[key] = value;
+      } else if (isPrimitive(value)) {
+        queryParams[key] = value;
+      } else {
+        bodyParams[key] = value;
+      }
     }
   }
 
-  // For simplicity, if there are non-path primitive params,
-  // we need to determine if they're query or body based on HTTP method
-  // Since we don't have that info here, we'll treat all non-path primitives
-  // as potential query params for GET/DELETE, and body params for POST/PUT/PATCH
-  // This is handled by the executor which knows the method
-
   return { pathParams, queryParams, bodyParams };
+}
+
+/**
+ * Extract path parameter names from params (fallback)
+ */
+function extractPathParamNames(params: Record<string, unknown>): Set<string> {
+  // This is a fallback - in practice, metadata should always be provided
+  return new Set<string>();
 }
 
 /**

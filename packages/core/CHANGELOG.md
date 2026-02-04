@@ -1,5 +1,11 @@
 # @spec2tools/core
 
+## 0.1.2
+
+### Patch Changes
+
+- handle $ref correctly in openapi parser and change --api-key to --token in cli
+
 ## 0.1.1
 
 ### Patch Changes

@@ -2,6 +2,15 @@ import { z } from 'zod';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
+export interface ParameterMetadata {
+  /** Parameters that come from path (e.g., {id} in /users/{id}) */
+  pathParams: Set<string>;
+  /** Parameters that come from query string */
+  queryParams: Set<string>;
+  /** Parameters that come from request body */
+  bodyParams: Set<string>;
+}
+
 export interface Tool {
   name: string;
   description: string;
@@ -10,6 +19,7 @@ export interface Tool {
   httpMethod: HttpMethod;
   path: string;
   authConfig?: AuthConfig;
+  parameterMetadata?: ParameterMetadata;
 }
 
 export type AuthType = 'oauth2' | 'apiKey' | 'bearer' | 'basic' | 'none';
