@@ -48,6 +48,8 @@ function parseArgs(args: string[]): McpServerOptions {
       options.version = args[++i];
     } else if (arg === '--api-key' && args[i + 1]) {
       options.apiKey = args[++i];
+    } else if (arg === '--code-mode') {
+      options.codeMode = true;
     } else if (!arg.startsWith('-')) {
       options.spec = arg;
     }
@@ -70,6 +72,7 @@ Options:
   --name <name>       Server name for MCP (default: openapi-mcp-server)
   --version <ver>     Server version for MCP (default: 1.0.0)
   --api-key <key>     API key or token for authentication
+  --code-mode         Use code mode (2 tools: search + execute)
   -h, --help          Show this help message
 
 Environment Variables:

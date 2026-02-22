@@ -33,6 +33,8 @@
     "directory": "packages/core"
   },
   "dependencies": {
+    "@pydantic/monty": "^0.0.7",
+    "ai": "^6.0.68",
     "express": "^5.0.0",
     "open": "^10.1.0",
     "yaml": "^2.5.0",

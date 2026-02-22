@@ -1,18 +1,20 @@
-import { tool, generateText } from 'ai';
 import {
   loadOpenAPISpec,
   extractBaseUrl,
   extractAuthConfig,
   parseOperations,
+  createExecutableTools,
+  toAISDKTools,
+  toCodeModeTools,
   AuthManager,
-  ToolExecutionError,
+  type ToolSet,
 } from '@spec2tools/core';
-
-type ToolSet = NonNullable<Parameters<typeof generateText>[0]['tools']>;
 
 export interface Spec2ToolsOptions {
   /** Path or URL to OpenAPI specification */
   spec: string;
+  /** Use code mode (2 tools: search + execute) instead of one tool per endpoint */
+  codeMode?: boolean;
 }
 
 /**
@@ -33,7 +35,7 @@ export interface Spec2ToolsOptions {
  * });
  * ```
  *
- * @throws Error if the API requires authentication
+ * @throws Error if the API requires authentication (unless codeMode is enabled)
  */
 export async function createTools(
   options: Spec2ToolsOptions
@@ -42,8 +44,8 @@ export async function createTools(
   const baseUrl = extractBaseUrl(spec);
   const authConfig = extractAuthConfig(spec);
 
-  // Check if auth is required
-  if (authConfig.type !== 'none') {
+  // Check if auth is required (skip in code mode — auth is handled internally)
+  if (!options.codeMode && authConfig.type !== 'none') {
     throw new Error(
       `This API requires authentication (${authConfig.type}). ` +
       `The createTools() function only supports APIs without authentication. ` +
@@ -53,79 +55,12 @@ export async function createTools(
 
   const toolDefs = parseOperations(spec);
   const authManager = new AuthManager(authConfig);
+  const tools = createExecutableTools(toolDefs, baseUrl, authManager);
+  let aiTools = toAISDKTools(tools);
 
-  // Build AI SDK tools
-  const tools: ToolSet = {};
-
-  for (const toolDef of toolDefs) {
-    const { name, description, parameters, httpMethod, path } = toolDef;
-
-    tools[name] = tool({
-      description,
-      inputSchema: parameters,
-      execute: async (params: Record<string, unknown>) => {
-        // Build URL with path parameters
-        let url = `${baseUrl}${path}`;
-        const queryParams: Record<string, string> = {};
-        const bodyParams: Record<string, unknown> = {};
-
-        for (const [key, value] of Object.entries(params)) {
-          if (value === undefined) continue;
-
-          if (url.includes(`{${key}}`)) {
-            // Path parameter
-            url = url.replace(`{${key}}`, encodeURIComponent(String(value)));
-          } else if (httpMethod === 'GET' || httpMethod === 'DELETE') {
-            // Query parameter for GET/DELETE
-            queryParams[key] = String(value);
-          } else {
-            // Body parameter for POST/PUT/PATCH
-            bodyParams[key] = value;
-          }
-        }
-
-        // Add query parameters
-        const queryString = new URLSearchParams(queryParams).toString();
-        if (queryString) {
-          url += `?${queryString}`;
-        }
-
-        // Build request options
-        const fetchOptions: RequestInit = {
-          method: httpMethod,
-          headers: {
-            'Content-Type': 'application/json',
-            ...authManager.getAuthHeaders(),
-          },
-        };
-
-        // Add body for non-GET/DELETE requests
-        if (
-          Object.keys(bodyParams).length > 0 &&
-          httpMethod !== 'GET' &&
-          httpMethod !== 'DELETE'
-        ) {
-          fetchOptions.body = JSON.stringify(bodyParams);
-        }
-
-        const response = await fetch(url, fetchOptions);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new ToolExecutionError(
-            name,
-            new Error(`HTTP ${response.status}: ${errorText}`)
-          );
-        }
-
-        const contentType = response.headers.get('content-type');
-        if (contentType?.includes('application/json')) {
-          return await response.json();
-        }
-        return await response.text();
-      },
-    });
+  if (options.codeMode) {
+    aiTools = toCodeModeTools(aiTools);
   }
 
-  return tools;
+  return aiTools;
 }

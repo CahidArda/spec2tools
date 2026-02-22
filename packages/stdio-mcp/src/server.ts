@@ -12,9 +12,10 @@ import {
   extractAuthConfig,
   parseOperations,
   AuthManager,
-  Tool,
-  AuthConfig,
+  type AuthConfig,
   createExecutableTools,
+  toAISDKTools,
+  toCodeModeTools,
 } from '@spec2tools/core';
 
 export interface McpServerOptions {
@@ -26,6 +27,8 @@ export interface McpServerOptions {
   version?: string;
   /** API key or token for authentication */
   apiKey?: string;
+  /** Use code mode (2 tools: search + execute) */
+  codeMode?: boolean;
 }
 
 /**
@@ -55,7 +58,13 @@ export async function startMcpServer(options: McpServerOptions): Promise<void> {
 
   // Parse operations into tool definitions and create executable tools
   const toolDefs = parseOperations(spec);
-  const tools = createExecutableTools(toolDefs, baseUrl, authManager);
+  const coreTools = createExecutableTools(toolDefs, baseUrl, authManager);
+
+  // Convert to AI SDK tools, optionally applying code mode
+  let tools = toAISDKTools(coreTools);
+  if (options.codeMode) {
+    tools = toCodeModeTools(tools);
+  }
 
   // Create MCP server
   const server = new Server(
@@ -66,20 +75,30 @@ export async function startMcpServer(options: McpServerOptions): Promise<void> {
   // Register tool listing handler
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     return {
-      tools: tools.map((tool) => ({
-        name: tool.name,
-        description: tool.description,
-        inputSchema: zodToJsonSchema(tool.parameters, { target: 'jsonSchema7' }),
-      })),
+      tools: Object.entries(tools).map(([toolName, t]) => {
+        const description = 'description' in t ? (t.description as string) || '' : '';
+        const parameters = 'parameters' in t ? t.parameters : undefined;
+
+        let inputSchema: Record<string, unknown> = { type: 'object', properties: {} };
+        if (parameters && typeof parameters === 'object' && '_def' in (parameters as Record<string, unknown>)) {
+          inputSchema = zodToJsonSchema(parameters as import('zod').ZodType, { target: 'jsonSchema7' }) as Record<string, unknown>;
+        }
+
+        return {
+          name: toolName,
+          description,
+          inputSchema,
+        };
+      }),
     };
   });
 
   // Register tool execution handler
   server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToolResult> => {
     const { name: toolName, arguments: args } = request.params;
-    const tool = tools.find((t) => t.name === toolName);
+    const toolEntry = tools[toolName];
 
-    if (!tool) {
+    if (!toolEntry) {
       return {
         content: [{ type: 'text', text: `Error: Unknown tool "${toolName}"` }],
         isError: true,
@@ -87,7 +106,15 @@ export async function startMcpServer(options: McpServerOptions): Promise<void> {
     }
 
     try {
-      const result = await tool.execute(args ?? {});
+      const execute = 'execute' in toolEntry ? toolEntry.execute : undefined;
+      if (!execute) {
+        return {
+          content: [{ type: 'text', text: `Error: Tool "${toolName}" has no execute function` }],
+          isError: true,
+        };
+      }
+
+      const result = await (execute as (params: unknown, options: unknown) => Promise<unknown>)(args ?? {}, {});
       const resultText = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
       return {
         content: [{ type: 'text', text: resultText }],
@@ -96,7 +123,6 @@ export async function startMcpServer(options: McpServerOptions): Promise<void> {
       let errorMessage: string;
       if (error instanceof Error) {
         errorMessage = error.message;
-        // Include stack trace for debugging if available
         if (error.stack) {
           errorMessage += `\n\nStack trace:\n${error.stack}`;
         }
@@ -120,7 +146,7 @@ export async function startMcpServer(options: McpServerOptions): Promise<void> {
  */
 function configureAuth(
   authManager: AuthManager,
-  authConfig: AuthConfig,
+  _authConfig: AuthConfig,
   options: McpServerOptions
 ): void {
   // Check for explicit option first, then fall back to environment variable
