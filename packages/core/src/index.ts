@@ -40,3 +40,10 @@ export { AuthManager } from './auth-manager.js';
 
 // Tool Executor
 export { createExecutableTools, executeToolByName } from './tool-executor.js';
+
+// AI SDK Tools
+export { toAISDKTools } from './ai-tools.js';
+export type { ToolSet } from './ai-tools.js';
+
+// Code Mode
+export { toCodeModeTools } from './code-mode.js';

@@ -1,6 +1,6 @@
 {
   "name": "@spec2tools/stdio-mcp",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "MCP server that exposes OpenAPI endpoints as tools via stdio transport",
   "type": "module",
   "main": "dist/index.js",
@@ -40,8 +40,10 @@
     "directory": "packages/stdio-mcp"
   },
   "dependencies": {
+    "@ai-sdk/mcp": "^1.0.21",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "@spec2tools/core": "workspace:*",
+    "ai": "^6.0.68",
     "zod": "^3.24.0",
     "zod-to-json-schema": "^3.24.0"
   },

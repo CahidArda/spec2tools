@@ -12,10 +12,13 @@ import {
   extractAuthConfig,
   parseOperations,
   AuthManager,
-  Tool,
-  AuthConfig,
+  type AuthConfig,
+  type ToolSet,
   createExecutableTools,
+  toAISDKTools,
+  toCodeModeTools,
 } from '@spec2tools/core';
+import { createMCPClient, MCPClientConfig } from '@ai-sdk/mcp';
 
 export interface McpServerOptions {
   /** Path or URL to OpenAPI specification */
@@ -26,6 +29,12 @@ export interface McpServerOptions {
   version?: string;
   /** API key or token for authentication */
   apiKey?: string;
+  /** Use code mode (2 tools: search + execute) */
+  codeMode?: boolean;
+  /** URL of a remote MCP server (Streamable HTTP transport) */
+  httpUrl?: string;
+  /** URL of a remote MCP server (SSE transport) */
+  sseUrl?: string;
 }
 
 /**
@@ -42,20 +51,40 @@ export interface McpServerOptions {
  * ```
  */
 export async function startMcpServer(options: McpServerOptions): Promise<void> {
-  const { spec: specPath, name = 'openapi-mcp-server', version = '0.1.0' } = options;
+  const { name = 'openapi-mcp-server', version = '0.1.0' } = options;
 
-  // Load and parse OpenAPI spec
-  const spec = await loadOpenAPISpec(specPath);
-  const baseUrl = extractBaseUrl(spec);
-  const authConfig = extractAuthConfig(spec);
+  let tools: ToolSet;
+  let mcpClient: Awaited<ReturnType<typeof createMCPClient>> | undefined;
 
-  // Set up auth manager
-  const authManager = new AuthManager(authConfig);
-  configureAuth(authManager, authConfig, options);
+  if (options.httpUrl || options.sseUrl) {
+    // Remote MCP proxy mode: connect to an existing MCP server
+    const transport: MCPClientConfig["transport"] = options.httpUrl
+      ? { type: 'http' as const, url: options.httpUrl, headers: { Authorization: `Bearer ${options.apiKey || ''}` } }
+      : { type: 'sse' as const, url: options.sseUrl!, headers: { Authorization: `Bearer ${options.apiKey || ''}` } };
 
-  // Parse operations into tool definitions and create executable tools
-  const toolDefs = parseOperations(spec);
-  const tools = createExecutableTools(toolDefs, baseUrl, authManager);
+    mcpClient = await createMCPClient({ transport });
+    tools = await mcpClient.tools() as ToolSet;
+
+    if (options.codeMode) {
+      tools = toCodeModeTools(tools);
+    }
+  } else {
+    // OpenAPI spec mode: load spec and create tools
+    const spec = await loadOpenAPISpec(options.spec);
+    const baseUrl = extractBaseUrl(spec);
+    const authConfig = extractAuthConfig(spec);
+
+    const authManager = new AuthManager(authConfig);
+    configureAuth(authManager, authConfig, options);
+
+    const toolDefs = parseOperations(spec);
+    const coreTools = createExecutableTools(toolDefs, baseUrl, authManager);
+
+    tools = toAISDKTools(coreTools);
+    if (options.codeMode) {
+      tools = toCodeModeTools(tools);
+    }
+  }
 
   // Create MCP server
   const server = new Server(
@@ -66,20 +95,37 @@ export async function startMcpServer(options: McpServerOptions): Promise<void> {
   // Register tool listing handler
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     return {
-      tools: tools.map((tool) => ({
-        name: tool.name,
-        description: tool.description,
-        inputSchema: zodToJsonSchema(tool.parameters, { target: 'jsonSchema7' }),
-      })),
+      tools: Object.entries(tools).map(([toolName, t]) => {
+        const description = 'description' in t ? (t.description as string) || '' : '';
+        const schema =
+          ('inputSchema' in t ? t.inputSchema : undefined) ??
+          ('parameters' in t ? t.parameters : undefined);
+
+        let inputSchema: Record<string, unknown> = { type: 'object', properties: {} };
+        if (schema && typeof schema === 'object') {
+          const schemaObj = schema as Record<string, unknown>;
+          if ('jsonSchema' in schemaObj && schemaObj.jsonSchema) {
+            inputSchema = schemaObj.jsonSchema as Record<string, unknown>;
+          } else if ('_def' in schemaObj) {
+            inputSchema = zodToJsonSchema(schema as import('zod').ZodType, { target: 'jsonSchema7' }) as Record<string, unknown>;
+          }
+        }
+
+        return {
+          name: toolName,
+          description,
+          inputSchema,
+        };
+      }),
     };
   });
 
   // Register tool execution handler
   server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToolResult> => {
     const { name: toolName, arguments: args } = request.params;
-    const tool = tools.find((t) => t.name === toolName);
+    const toolEntry = tools[toolName];
 
-    if (!tool) {
+    if (!toolEntry) {
       return {
         content: [{ type: 'text', text: `Error: Unknown tool "${toolName}"` }],
         isError: true,
@@ -87,7 +133,15 @@ export async function startMcpServer(options: McpServerOptions): Promise<void> {
     }
 
     try {
-      const result = await tool.execute(args ?? {});
+      const execute = 'execute' in toolEntry ? toolEntry.execute : undefined;
+      if (!execute) {
+        return {
+          content: [{ type: 'text', text: `Error: Tool "${toolName}" has no execute function` }],
+          isError: true,
+        };
+      }
+
+      const result = await (execute as (params: unknown, options: unknown) => Promise<unknown>)(args ?? {}, {});
       const resultText = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
       return {
         content: [{ type: 'text', text: resultText }],
@@ -96,7 +150,6 @@ export async function startMcpServer(options: McpServerOptions): Promise<void> {
       let errorMessage: string;
       if (error instanceof Error) {
         errorMessage = error.message;
-        // Include stack trace for debugging if available
         if (error.stack) {
           errorMessage += `\n\nStack trace:\n${error.stack}`;
         }
@@ -110,6 +163,15 @@ export async function startMcpServer(options: McpServerOptions): Promise<void> {
     }
   });
 
+  // Clean up remote MCP client on process exit
+  if (mcpClient) {
+    const cleanup = async () => {
+      await mcpClient!.close();
+    };
+    process.on('SIGINT', () => { cleanup().then(() => process.exit(0)); });
+    process.on('SIGTERM', () => { cleanup().then(() => process.exit(0)); });
+  }
+
   // Start stdio transport
   const transport = new StdioServerTransport();
   await server.connect(transport);
@@ -120,7 +182,7 @@ export async function startMcpServer(options: McpServerOptions): Promise<void> {
  */
 function configureAuth(
   authManager: AuthManager,
-  authConfig: AuthConfig,
+  _authConfig: AuthConfig,
   options: McpServerOptions
 ): void {
   // Check for explicit option first, then fall back to environment variable

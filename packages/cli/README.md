@@ -38,6 +38,9 @@ npx @spec2tools/cli start --spec ./openapi.yaml --no-auth
 
 # Provide API key directly
 npx @spec2tools/cli start --spec ./openapi.yaml --api-key "your-api-key"
+
+# Enable code mode (2 tools: search + execute)
+npx @spec2tools/cli start --spec ./openapi.yaml --code-mode
 ```
 
 ### Chat Mode

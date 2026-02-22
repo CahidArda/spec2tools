@@ -12,12 +12,15 @@ import {
   AuthManager,
   createExecutableTools,
   executeToolByName,
+  toAISDKTools,
+  toCodeModeTools,
   UnsupportedSchemaError,
   AuthenticationError,
   ToolExecutionError,
   SpecLoadError,
   type Session,
   type Tool,
+  type ToolSet,
 } from '@spec2tools/core';
 import { Agent } from './agent.js';
 
@@ -37,6 +40,7 @@ export function createCLI(): Command {
     .requiredOption('-s, --spec <path>', 'Path or URL to OpenAPI specification')
     .option('--no-auth', 'Skip authentication even if required by spec')
     .option('--api-key <key>', 'Provide API key or access token directly')
+    .option('--code-mode', 'Use code mode (2 tools: search + execute)')
     .action(async (options) => {
       await startAgent(options);
     });
@@ -48,6 +52,7 @@ interface StartOptions {
   spec: string;
   auth: boolean;
   apiKey?: string;
+  codeMode?: boolean;
 }
 
 async function startAgent(options: StartOptions): Promise<void> {
@@ -100,6 +105,14 @@ async function startAgent(options: StartOptions): Promise<void> {
     // Create executable tools
     const tools = createExecutableTools(toolDefs, baseUrl, authManager);
 
+    // Convert to AI SDK tools
+    let aiTools = toAISDKTools(tools);
+
+    if (options.codeMode) {
+      aiTools = toCodeModeTools(aiTools);
+      console.log(chalk.green('Code mode enabled (2 tools: search + execute)'));
+    }
+
     // Initialize session
     const session: Session = {
       baseUrl,
@@ -109,7 +122,7 @@ async function startAgent(options: StartOptions): Promise<void> {
     };
 
     // Start chat loop
-    await startChatLoop(session);
+    await startChatLoop(session, aiTools, options.codeMode ?? false);
   } catch (error) {
     spinner.fail();
 
@@ -136,9 +149,9 @@ async function startAgent(options: StartOptions): Promise<void> {
   }
 }
 
-async function startChatLoop(session: Session): Promise<void> {
+async function startChatLoop(session: Session, aiTools: ToolSet, codeMode: boolean): Promise<void> {
   // Initialize agent
-  const agent = new Agent({ tools: session.tools });
+  const agent = new Agent({ tools: aiTools });
 
   console.log(chalk.bold('\n--- Spec2Tools ---'));
   console.log(chalk.dim('Type your message or use special commands:'));
@@ -167,7 +180,7 @@ async function startChatLoop(session: Session): Promise<void> {
       rl.pause();
 
       try {
-        await handleInput(trimmedInput, session, agent);
+        await handleInput(trimmedInput, session, agent, codeMode, aiTools);
       } catch (error) {
         console.error(
           chalk.red(
@@ -192,11 +205,13 @@ async function startChatLoop(session: Session): Promise<void> {
 async function handleInput(
   input: string,
   session: Session,
-  agent: Agent
+  agent: Agent,
+  codeMode: boolean,
+  aiTools: ToolSet
 ): Promise<void> {
   // Handle special commands
   if (input.startsWith('/')) {
-    await handleCommand(input, session, agent);
+    await handleCommand(input, session, agent, codeMode, aiTools);
     return;
   }
 
@@ -216,7 +231,9 @@ async function handleInput(
 async function handleCommand(
   input: string,
   session: Session,
-  agent: Agent
+  agent: Agent,
+  codeMode: boolean,
+  aiTools: ToolSet
 ): Promise<void> {
   const parts = input.slice(1).split(/\s+/);
   const command = parts[0].toLowerCase();
@@ -224,7 +241,11 @@ async function handleCommand(
 
   switch (command) {
     case 'tools':
-      listTools(session.tools);
+      if (codeMode) {
+        listCodeModeTools(aiTools);
+      } else {
+        listTools(session.tools);
+      }
       break;
 
     case 'call':
@@ -262,6 +283,18 @@ function listTools(tools: Tool[]): void {
     const signature = formatToolSignature(tool);
     console.log(chalk.cyan(`${index + 1}. ${signature}`));
     console.log(chalk.dim(`   ${tool.description}`));
+  });
+
+  console.log('');
+}
+
+function listCodeModeTools(aiTools: ToolSet): void {
+  console.log(chalk.bold('\nCode mode tools:'));
+
+  Object.entries(aiTools).forEach(([name, t], index) => {
+    const desc = 'description' in t ? (t.description as string) || '' : '';
+    console.log(chalk.cyan(`${index + 1}. ${name}`));
+    console.log(chalk.dim(`   ${desc}`));
   });
 
   console.log('');

@@ -1,6 +1,6 @@
-import { generateText, tool, stepCountIs, ModelMessage } from 'ai';
+import { generateText, stepCountIs, ModelMessage } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { type Tool, ToolExecutionError } from '@spec2tools/core';
+import { type ToolSet, ToolExecutionError } from '@spec2tools/core';
 import chalk from 'chalk';
 
 const MAX_OUTPUT_LENGTH = 500;
@@ -17,7 +17,7 @@ function trimOutput(value: unknown): string {
 }
 
 interface AgentConfig {
-  tools: Tool[];
+  tools: ToolSet;
   model?: string;
   maxSteps?: number;
 }
@@ -26,7 +26,7 @@ interface AgentConfig {
  * AI Agent that uses OpenAPI tools
  */
 export class Agent {
-  private tools: Tool[];
+  private tools: ToolSet;
   private model: string;
   private maxSteps: number;
   private conversationHistory: ModelMessage[];
@@ -42,12 +42,15 @@ export class Agent {
    * Get available tools description for the agent
    */
   getToolsDescription(): string {
-    if (this.tools.length === 0) {
+    const names = Object.keys(this.tools);
+    if (names.length === 0) {
       return 'No tools available.';
     }
 
-    const toolDescriptions = this.tools.map((tool) => {
-      return `- ${tool.name}: ${tool.description}`;
+    const toolDescriptions = names.map((name) => {
+      const t = this.tools[name];
+      const desc = 'description' in t ? t.description : '';
+      return `- ${name}: ${desc}`;
     });
 
     return `I have access to the following tools:\n${toolDescriptions.join('\n')}`;
@@ -64,36 +67,32 @@ export class Agent {
     });
 
     try {
-      // Build AI SDK tools from our tool definitions
-      const aiTools: Parameters<typeof generateText>[0]['tools'] = {};
-
-      for (const t of this.tools) {
-        const toolExecute = t.execute;
-        const toolName = t.name;
-
-        aiTools![t.name] = tool({
-          description: t.description,
-          inputSchema: t.parameters,
-          execute: async (params) => {
-            console.log(
-              chalk.dim(`\n[Calling ${toolName} with ${JSON.stringify(params)}]`)
-            );
-
-            try {
-              const result = await toolExecute(params);
-              console.log(
-                chalk.dim(`[${toolName} returned: ${trimOutput(result)}]\n`)
-              );
-              return result;
-            } catch (error) {
-              if (error instanceof ToolExecutionError) {
-                console.log(chalk.red(`[${toolName} failed: ${error.message}]\n`));
-                throw error;
+      // Wrap each tool to add CLI logging
+      const wrappedTools: ToolSet = {};
+      for (const [name, t] of Object.entries(this.tools)) {
+        const originalExecute = 'execute' in t ? t.execute : undefined;
+        wrappedTools[name] = {
+          ...t,
+          execute: originalExecute
+            ? async (params: unknown, options: unknown) => {
+                console.log(
+                  chalk.dim(`\n[Calling ${name} with ${JSON.stringify(params)}]`)
+                );
+                try {
+                  const result = await (originalExecute as Function)(params, options);
+                  console.log(
+                    chalk.dim(`[${name} returned: ${trimOutput(result)}]\n`)
+                  );
+                  return result;
+                } catch (error) {
+                  if (error instanceof ToolExecutionError) {
+                    console.log(chalk.red(`[${name} failed: ${error.message}]\n`));
+                  }
+                  throw error;
+                }
               }
-              throw error;
-            }
-          },
-        });
+            : undefined,
+        } as ToolSet[string];
       }
 
       // Build system prompt
@@ -107,7 +106,7 @@ If a tool call fails, explain the error to the user.`;
         model: openai(this.model),
         system: systemPrompt,
         messages: this.conversationHistory,
-        tools: aiTools,
+        tools: wrappedTools,
         stopWhen: stepCountIs(this.maxSteps),
       });
 
@@ -143,13 +142,13 @@ If a tool call fails, explain the error to the user.`;
    * Get the list of tool names
    */
   getToolNames(): string[] {
-    return this.tools.map((t) => t.name);
+    return Object.keys(this.tools);
   }
 
   /**
    * Get a specific tool by name
    */
-  getTool(name: string): Tool | undefined {
-    return this.tools.find((t) => t.name === name);
+  getTool(name: string): ToolSet[string] | undefined {
+    return this.tools[name];
   }
 }
