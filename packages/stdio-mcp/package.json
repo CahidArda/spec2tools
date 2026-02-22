@@ -40,6 +40,7 @@
     "directory": "packages/stdio-mcp"
   },
   "dependencies": {
+    "@ai-sdk/mcp": "^1.0.21",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "@spec2tools/core": "workspace:*",
     "ai": "^6.0.68",

@@ -38,6 +38,36 @@ const tools = await createTools({
 });
 ```
 
+### Code Mode for MCP Clients
+
+Use `convertToolsToCodeMode` to apply code mode to tools from any source, such as `createMCPClient` from `@ai-sdk/mcp`:
+
+```ts
+import { createMCPClient } from '@ai-sdk/mcp';
+import { convertToolsToCodeMode } from '@spec2tools/sdk';
+import { generateText, stepCountIs } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const client = await createMCPClient({
+  transport: { type: 'sse', url: 'http://localhost:3000/sse' },
+});
+
+try {
+  const tools = convertToolsToCodeMode(await client.tools());
+
+  const result = await generateText({
+    model: openai('gpt-4o'),
+    tools,
+    prompt: 'List all users',
+    stopWhen: stepCountIs(3),
+  });
+
+  console.log(result.text);
+} finally {
+  await client.close();
+}
+```
+
 ## API
 
 ### `createTools(options: Spec2ToolsOptions): Promise<ToolSet>`
@@ -56,6 +86,10 @@ A `Promise` that resolves to an object of AI SDK tools.
 #### Throws
 
 - `Error` if the API requires authentication (unless `codeMode` is enabled). For authenticated APIs, use the `@spec2tools/cli` package instead.
+
+### `convertToolsToCodeMode(tools: ToolSet): ToolSet`
+
+Converts an existing AI SDK ToolSet into code mode (2 tools: `search` + `execute`). Useful when you have tools from another source (e.g. `createMCPClient` from `@ai-sdk/mcp`) and want to reduce token usage.
 
 ## License
 

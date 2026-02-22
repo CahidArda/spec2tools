@@ -10,6 +10,26 @@ import {
   type ToolSet,
 } from '@spec2tools/core';
 
+/**
+ * Convert an existing AI SDK ToolSet into code mode (2 tools: search + execute).
+ *
+ * Useful when you already have tools from another source (e.g. `createMCPClient`)
+ * and want to reduce token usage by collapsing them into code mode.
+ *
+ * @example
+ * ```ts
+ * import { createMCPClient } from '@ai-sdk/mcp';
+ * import { convertToolsToCodeMode } from '@spec2tools/sdk';
+ *
+ * const client = await createMCPClient({
+ *   transport: { type: 'sse', url: 'http://localhost:3000/sse' },
+ * });
+ * const tools = await client.tools();
+ * const codeModeTools = convertToolsToCodeMode(tools);
+ * ```
+ */
+export const convertToolsToCodeMode: typeof toCodeModeTools = toCodeModeTools;
+
 export interface Spec2ToolsOptions {
   /** Path or URL to OpenAPI specification */
   spec: string;

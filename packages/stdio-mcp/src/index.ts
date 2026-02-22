@@ -22,8 +22,8 @@ async function main(): Promise<void> {
 
   const options = parseArgs(args);
 
-  if (!options.spec) {
-    console.error('Error: OpenAPI spec path is required');
+  if (!options.spec && !options.httpUrl && !options.sseUrl) {
+    console.error('Error: OpenAPI spec path or remote MCP URL (--http / --sse) is required');
     printUsage();
     process.exit(1);
   }
@@ -50,6 +50,10 @@ function parseArgs(args: string[]): McpServerOptions {
       options.apiKey = args[++i];
     } else if (arg === '--code-mode') {
       options.codeMode = true;
+    } else if (arg === '--http' && args[i + 1]) {
+      options.httpUrl = args[++i];
+    } else if (arg === '--sse' && args[i + 1]) {
+      options.sseUrl = args[++i];
     } else if (!arg.startsWith('-')) {
       options.spec = arg;
     }
@@ -64,11 +68,15 @@ function printUsage(): void {
 
 Usage:
   spec2tools-mcp <spec-path> [options]
+  spec2tools-mcp --http <url> [options]
+  spec2tools-mcp --sse <url> [options]
 
 Arguments:
   spec-path           Path or URL to OpenAPI specification (JSON or YAML)
 
 Options:
+  --http <url>        Connect to a remote MCP server (Streamable HTTP)
+  --sse <url>         Connect to a remote MCP server (SSE transport)
   --name <name>       Server name for MCP (default: openapi-mcp-server)
   --version <ver>     Server version for MCP (default: 1.0.0)
   --api-key <key>     API key or token for authentication
@@ -87,6 +95,13 @@ Examples:
 
   # Start with authentication
   API_KEY=xxx spec2tools-mcp ./api.yaml
+
+  # Proxy a remote MCP server via stdio
+  spec2tools-mcp --http https://example.com/mcp
+  spec2tools-mcp --sse https://example.com/sse
+
+  # Proxy with code mode (collapse all tools into search + execute)
+  spec2tools-mcp --sse https://example.com/sse --code-mode
 
   # Configure in Claude Desktop (claude_desktop_config.json):
   {

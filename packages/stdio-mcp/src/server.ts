@@ -13,10 +13,12 @@ import {
   parseOperations,
   AuthManager,
   type AuthConfig,
+  type ToolSet,
   createExecutableTools,
   toAISDKTools,
   toCodeModeTools,
 } from '@spec2tools/core';
+import { createMCPClient, MCPClientConfig } from '@ai-sdk/mcp';
 
 export interface McpServerOptions {
   /** Path or URL to OpenAPI specification */
@@ -29,6 +31,10 @@ export interface McpServerOptions {
   apiKey?: string;
   /** Use code mode (2 tools: search + execute) */
   codeMode?: boolean;
+  /** URL of a remote MCP server (Streamable HTTP transport) */
+  httpUrl?: string;
+  /** URL of a remote MCP server (SSE transport) */
+  sseUrl?: string;
 }
 
 /**
@@ -45,25 +51,39 @@ export interface McpServerOptions {
  * ```
  */
 export async function startMcpServer(options: McpServerOptions): Promise<void> {
-  const { spec: specPath, name = 'openapi-mcp-server', version = '0.1.0' } = options;
+  const { name = 'openapi-mcp-server', version = '0.1.0' } = options;
 
-  // Load and parse OpenAPI spec
-  const spec = await loadOpenAPISpec(specPath);
-  const baseUrl = extractBaseUrl(spec);
-  const authConfig = extractAuthConfig(spec);
+  let tools: ToolSet;
+  let mcpClient: Awaited<ReturnType<typeof createMCPClient>> | undefined;
 
-  // Set up auth manager
-  const authManager = new AuthManager(authConfig);
-  configureAuth(authManager, authConfig, options);
+  if (options.httpUrl || options.sseUrl) {
+    // Remote MCP proxy mode: connect to an existing MCP server
+    const transport: MCPClientConfig["transport"] = options.httpUrl
+      ? { type: 'http' as const, url: options.httpUrl, headers: { Authorization: `Bearer ${options.apiKey || ''}` } }
+      : { type: 'sse' as const, url: options.sseUrl!, headers: { Authorization: `Bearer ${options.apiKey || ''}` } };
 
-  // Parse operations into tool definitions and create executable tools
-  const toolDefs = parseOperations(spec);
-  const coreTools = createExecutableTools(toolDefs, baseUrl, authManager);
+    mcpClient = await createMCPClient({ transport });
+    tools = await mcpClient.tools() as ToolSet;
 
-  // Convert to AI SDK tools, optionally applying code mode
-  let tools = toAISDKTools(coreTools);
-  if (options.codeMode) {
-    tools = toCodeModeTools(tools);
+    if (options.codeMode) {
+      tools = toCodeModeTools(tools);
+    }
+  } else {
+    // OpenAPI spec mode: load spec and create tools
+    const spec = await loadOpenAPISpec(options.spec);
+    const baseUrl = extractBaseUrl(spec);
+    const authConfig = extractAuthConfig(spec);
+
+    const authManager = new AuthManager(authConfig);
+    configureAuth(authManager, authConfig, options);
+
+    const toolDefs = parseOperations(spec);
+    const coreTools = createExecutableTools(toolDefs, baseUrl, authManager);
+
+    tools = toAISDKTools(coreTools);
+    if (options.codeMode) {
+      tools = toCodeModeTools(tools);
+    }
   }
 
   // Create MCP server
@@ -142,6 +162,15 @@ export async function startMcpServer(options: McpServerOptions): Promise<void> {
       };
     }
   });
+
+  // Clean up remote MCP client on process exit
+  if (mcpClient) {
+    const cleanup = async () => {
+      await mcpClient!.close();
+    };
+    process.on('SIGINT', () => { cleanup().then(() => process.exit(0)); });
+    process.on('SIGTERM', () => { cleanup().then(() => process.exit(0)); });
+  }
 
   // Start stdio transport
   const transport = new StdioServerTransport();

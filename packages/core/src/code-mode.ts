@@ -13,11 +13,25 @@ import {
 type ToolSet = NonNullable<Parameters<typeof generateText>[0]['tools']>;
 
 interface ToolIndexEntry {
-  name: string;
+  /** Original tool name (key in the ToolSet) */
+  originalName: string;
+  /** Python-safe function name */
+  pyName: string;
   description: string;
   signature: string;
   example: string;
   searchText: string;
+}
+
+/**
+ * Convert a tool name into a valid Python identifier.
+ * Replaces hyphens, dots, spaces, etc. with underscores and
+ * prefixes with `_` if the name starts with a digit.
+ */
+function toPythonName(name: string): string {
+  let py = name.replace(/[^a-zA-Z0-9_]/g, '_');
+  if (/^[0-9]/.test(py)) py = `_${py}`;
+  return py || '_unnamed';
 }
 
 function jsonSchemaTypeToPython(schema: Record<string, unknown>): string {
@@ -37,6 +51,7 @@ function buildIndex(tools: ToolSet): ToolIndexEntry[] {
   const index: ToolIndexEntry[] = [];
 
   for (const [name, t] of Object.entries(tools)) {
+    const pyName = toPythonName(name);
     const description =
       'description' in t ? ((t.description as string) || '') : '';
 
@@ -91,7 +106,7 @@ function buildIndex(tools: ToolSet): ToolIndexEntry[] {
       if (p.required) return `${p.name}: ${p.type}`;
       return `${p.name}: ${p.type} = None`;
     });
-    const signature = `${name}(${paramStrs.join(', ')})`;
+    const signature = `${pyName}(${paramStrs.join(', ')})`;
 
     const exampleParams = params
       .filter((p) => p.required)
@@ -102,14 +117,15 @@ function buildIndex(tools: ToolSet): ToolIndexEntry[] {
         if (p.type === 'bool') return `${p.name}=True`;
         return `${p.name}=...`;
       });
-    const example = `${name}(${exampleParams.join(', ')})`;
+    const example = `${pyName}(${exampleParams.join(', ')})`;
 
     index.push({
-      name,
+      originalName: name,
+      pyName,
       description,
       signature,
       example,
-      searchText: `${name} ${description}`.toLowerCase(),
+      searchText: `${name} ${pyName} ${description}`.toLowerCase(),
     });
   }
 
@@ -143,7 +159,13 @@ function montyToJson(value: unknown): unknown {
  */
 export function toCodeModeTools(tools: ToolSet): ToolSet {
   const index = buildIndex(tools);
-  const toolNames = Object.keys(tools);
+
+  // Build a mapping from Python-safe names to original tool names
+  const pyToOriginal = new Map<string, string>();
+  for (const entry of index) {
+    pyToOriginal.set(entry.pyName, entry.originalName);
+  }
+  const pythonNames = [...pyToOriginal.keys()];
 
   const searchTool = tool({
     description:
@@ -197,14 +219,15 @@ export function toCodeModeTools(tools: ToolSet): ToolSet {
     }),
     execute: async ({ code }) => {
       try {
-        const m = new Monty(code, { externalFunctions: toolNames });
+        const m = new Monty(code, { externalFunctions: pythonNames });
         let progress: MontySnapshot | MontyComplete = m.start({
           limits: { maxDurationSecs: 30 },
         });
 
         while (progress instanceof MontySnapshot) {
           const snapshot = progress;
-          const toolEntry = tools[snapshot.functionName];
+          const originalName = pyToOriginal.get(snapshot.functionName);
+          const toolEntry = originalName ? tools[originalName] : undefined;
 
           if (
             !toolEntry ||

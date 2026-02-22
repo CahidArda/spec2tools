@@ -72,6 +72,28 @@ spec2tools-mcp ./api.yaml --api-key your-api-key
 API_KEY=your-api-key spec2tools-mcp ./api.yaml
 ```
 
+### Remote MCP Server
+
+Proxy an existing remote MCP server through stdio. This lets you connect any HTTP or SSE-based MCP server to clients that only support stdio transport (like Claude Desktop), and optionally apply code mode to reduce token usage.
+
+```bash
+# Proxy via Streamable HTTP
+spec2tools-mcp --http https://example.com/mcp
+
+# Proxy via SSE
+spec2tools-mcp --sse https://example.com/sse
+
+# Proxy with code mode
+spec2tools-mcp --sse https://example.com/sse --code-mode
+```
+
+With Claude Code:
+
+```bash
+claude mcp add my-remote-api \
+  -- npx @spec2tools/stdio-mcp --sse https://example.com/sse --code-mode
+```
+
 ### Code Mode
 
 Code mode collapses all API endpoints into 2 tools (`search` + `execute`), reducing token usage by ~99.9%. The model discovers endpoints via keyword search and calls them by writing Python code in a sandboxed interpreter.
@@ -101,6 +123,8 @@ await startMcpServer({
 | `--name <name>` | Server name for MCP (default: `openapi-mcp-server`) |
 | `--version <ver>` | Server version for MCP (default: `1.0.0`) |
 | `--api-key <key>` | API key or bearer token for authentication |
+| `--http <url>` | Connect to a remote MCP server (Streamable HTTP) |
+| `--sse <url>` | Connect to a remote MCP server (SSE transport) |
 | `--code-mode` | Use code mode (2 tools: search + execute) |
 | `-h, --help` | Show help message |
 

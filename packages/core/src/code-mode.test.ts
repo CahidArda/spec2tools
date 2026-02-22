@@ -161,5 +161,56 @@ user`,
       const output = await execute('[i * 2 for i in range(5)]');
       expect(output).toEqual([0, 2, 4, 6, 8]);
     });
+
+    it('handles hyphenated tool names by pythonizing them', async () => {
+      const ts: ToolSet = {
+        'resolve-library-id': tool({
+          description: 'Resolve a library identifier',
+          inputSchema: z.object({ name: z.string() }),
+          execute: vi.fn().mockResolvedValue({ id: 'lib-123' }),
+        }),
+      };
+
+      const output = await execute('resolve_library_id(name="react")', ts);
+      const mockFn = (ts['resolve-library-id'] as unknown as { execute: ReturnType<typeof vi.fn> }).execute;
+      expect(mockFn).toHaveBeenCalledWith({ name: 'react' }, {});
+      expect(output).toEqual({ id: 'lib-123' });
+    });
+  });
+
+  describe('name pythonization', () => {
+    async function search(query: string, toolSet: ToolSet): Promise<string> {
+      const result = toCodeModeTools(toolSet);
+      const searchTool = result['search'];
+      const exec = 'execute' in searchTool ? searchTool.execute : undefined;
+      return (await exec!({ query }, { toolCallId: 'x', messages: [], abortSignal: new AbortController().signal })) as string;
+    }
+
+    it('converts hyphenated names to underscores in search results', async () => {
+      const ts: ToolSet = {
+        'resolve-library-id': tool({
+          description: 'Resolve a library',
+          inputSchema: z.object({ name: z.string() }),
+          execute: vi.fn().mockResolvedValue('ok'),
+        }),
+      };
+
+      const output = await search('resolve', ts);
+      expect(output).toContain('resolve_library_id');
+      expect(output).not.toContain('resolve-library-id');
+    });
+
+    it('still finds tools by original hyphenated name in search', async () => {
+      const ts: ToolSet = {
+        'resolve-library-id': tool({
+          description: 'Resolve a library',
+          inputSchema: z.object({ name: z.string() }),
+          execute: vi.fn().mockResolvedValue('ok'),
+        }),
+      };
+
+      const output = await search('resolve-library-id', ts);
+      expect(output).toContain('resolve_library_id');
+    });
   });
 });
