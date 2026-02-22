@@ -77,11 +77,18 @@ export async function startMcpServer(options: McpServerOptions): Promise<void> {
     return {
       tools: Object.entries(tools).map(([toolName, t]) => {
         const description = 'description' in t ? (t.description as string) || '' : '';
-        const parameters = 'parameters' in t ? t.parameters : undefined;
+        const schema =
+          ('inputSchema' in t ? t.inputSchema : undefined) ??
+          ('parameters' in t ? t.parameters : undefined);
 
         let inputSchema: Record<string, unknown> = { type: 'object', properties: {} };
-        if (parameters && typeof parameters === 'object' && '_def' in (parameters as Record<string, unknown>)) {
-          inputSchema = zodToJsonSchema(parameters as import('zod').ZodType, { target: 'jsonSchema7' }) as Record<string, unknown>;
+        if (schema && typeof schema === 'object') {
+          const schemaObj = schema as Record<string, unknown>;
+          if ('jsonSchema' in schemaObj && schemaObj.jsonSchema) {
+            inputSchema = schemaObj.jsonSchema as Record<string, unknown>;
+          } else if ('_def' in schemaObj) {
+            inputSchema = zodToJsonSchema(schema as import('zod').ZodType, { target: 'jsonSchema7' }) as Record<string, unknown>;
+          }
         }
 
         return {

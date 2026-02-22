@@ -12,6 +12,22 @@ pnpm add @spec2tools/stdio-mcp
 
 ## Quick Start
 
+### With Claude Code
+
+```bash
+# Add as an MCP server
+claude mcp add stdio my-api \
+  -- npx @spec2tools/stdio-mcp ./path/to/openapi.yaml
+
+# With authentication
+claude mcp add --env API_KEY=your-api-key my-api \
+  -- npx @spec2tools/stdio-mcp ./openapi.yaml
+
+# With code mode (2 tools: search + execute)
+claude mcp add my-api \
+  -- npx @spec2tools/stdio-mcp ./openapi.yaml --code-mode
+```
+
 ### With Claude Desktop
 
 Add to your `claude_desktop_config.json`:
@@ -40,22 +56,6 @@ For authenticated APIs:
 }
 ```
 
-Or using environment variables:
-
-```json
-{
-  "mcpServers": {
-    "my-api": {
-      "command": "npx",
-      "args": ["@spec2tools/stdio-mcp", "./openapi.yaml"],
-      "env": {
-        "API_KEY": "your-api-key"
-      }
-    }
-  }
-}
-```
-
 ### CLI Usage
 
 ```bash
@@ -70,6 +70,14 @@ spec2tools-mcp ./api.yaml --api-key your-api-key
 
 # Or use environment variable
 API_KEY=your-api-key spec2tools-mcp ./api.yaml
+```
+
+### Code Mode
+
+Code mode collapses all API endpoints into 2 tools (`search` + `execute`), reducing token usage by ~99.9%. The model discovers endpoints via keyword search and calls them by writing Python code in a sandboxed interpreter.
+
+```bash
+spec2tools-mcp ./openapi.yaml --code-mode
 ```
 
 ### Programmatic Usage
@@ -93,6 +101,7 @@ await startMcpServer({
 | `--name <name>` | Server name for MCP (default: `openapi-mcp-server`) |
 | `--version <ver>` | Server version for MCP (default: `1.0.0`) |
 | `--api-key <key>` | API key or bearer token for authentication |
+| `--code-mode` | Use code mode (2 tools: search + execute) |
 | `-h, --help` | Show help message |
 
 ## Environment Variables

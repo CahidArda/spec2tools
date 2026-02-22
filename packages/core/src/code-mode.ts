@@ -43,29 +43,44 @@ function buildIndex(tools: ToolSet): ToolIndexEntry[] {
     const params: { name: string; type: string; required: boolean }[] = [];
 
     try {
-      const parameters =
-        'parameters' in t ? (t.parameters as unknown) : null;
-      if (
-        parameters &&
-        typeof parameters === 'object' &&
-        '_def' in (parameters as Record<string, unknown>)
-      ) {
-        const jsonSchema = zodToJsonSchema(parameters as z.ZodType, {
-          target: 'jsonSchema7',
-        }) as Record<string, unknown>;
-        const properties =
-          (jsonSchema.properties as Record<string, Record<string, unknown>>) ||
-          {};
-        const required = new Set(
-          (jsonSchema.required as string[] | undefined) || []
-        );
+      // AI SDK tool() stores the schema as inputSchema (raw Zod)
+      // but other wrappers may use parameters
+      const schema =
+        ('inputSchema' in t ? t.inputSchema : null) ??
+        ('parameters' in t ? t.parameters : null);
 
-        for (const [pName, pSchema] of Object.entries(properties)) {
-          params.push({
-            name: pName,
-            type: jsonSchemaTypeToPython(pSchema),
-            required: required.has(pName),
-          });
+      if (schema && typeof schema === 'object') {
+        const schemaObj = schema as Record<string, unknown>;
+        let jsonSchema: Record<string, unknown> | null = null;
+
+        // AI SDK Schema wrapper — has a jsonSchema property
+        if ('jsonSchema' in schemaObj && schemaObj.jsonSchema) {
+          jsonSchema = schemaObj.jsonSchema as Record<string, unknown>;
+        }
+        // Raw Zod schema — has _def property
+        else if ('_def' in schemaObj) {
+          jsonSchema = zodToJsonSchema(schema as z.ZodType, {
+            target: 'jsonSchema7',
+          }) as Record<string, unknown>;
+        }
+
+        if (jsonSchema) {
+          const properties =
+            (jsonSchema.properties as Record<
+              string,
+              Record<string, unknown>
+            >) || {};
+          const required = new Set(
+            (jsonSchema.required as string[] | undefined) || []
+          );
+
+          for (const [pName, pSchema] of Object.entries(properties)) {
+            params.push({
+              name: pName,
+              type: jsonSchemaTypeToPython(pSchema),
+              required: required.has(pName),
+            });
+          }
         }
       }
     } catch {
@@ -99,6 +114,24 @@ function buildIndex(tools: ToolSet): ToolIndexEntry[] {
   }
 
   return index;
+}
+
+/**
+ * Recursively convert Monty's Map objects (Python dicts) to plain JS objects
+ * so they JSON.stringify correctly.
+ */
+function montyToJson(value: unknown): unknown {
+  if (value instanceof Map) {
+    const obj: Record<string, unknown> = {};
+    for (const [k, v] of value) {
+      obj[String(k)] = montyToJson(v);
+    }
+    return obj;
+  }
+  if (Array.isArray(value)) {
+    return value.map(montyToJson);
+  }
+  return value;
 }
 
 /**
@@ -212,7 +245,7 @@ export function toCodeModeTools(tools: ToolSet): ToolSet {
           }
         }
 
-        return (progress as MontyComplete).output;
+        return montyToJson((progress as MontyComplete).output);
       } catch (error) {
         if (error instanceof MontySyntaxError) {
           return `Syntax Error: ${error.message}`;

@@ -64,6 +64,39 @@ const tools = createExecutableTools(toolDefs, baseUrl, authManager);
 const result = await executeToolByName(tools, 'getUser', { id: '123' });
 ```
 
+### AI SDK Tools
+
+```ts
+import { toAISDKTools } from '@spec2tools/core';
+
+// Convert core tools to AI SDK-compatible ToolSet
+const aiTools = toAISDKTools(tools);
+```
+
+### Code Mode
+
+Collapse any AI SDK `ToolSet` into 2 tools (`search` + `execute`). The model discovers endpoints via keyword search and calls them by writing Python code, executed in a sandboxed [Monty](https://github.com/pydantic/monty) interpreter.
+
+```ts
+import { toCodeModeTools } from '@spec2tools/core';
+
+// Convert N tools into 2 code-mode tools
+const codeModeTools = toCodeModeTools(aiTools);
+```
+
+This also works with tools from any MCP server via the AI SDK:
+
+```ts
+import { createMCPClient } from 'ai';
+import { toCodeModeTools } from '@spec2tools/core';
+
+const client = await createMCPClient({
+  transport: { type: 'sse', url: 'http://localhost:3000/sse' },
+});
+
+const tools = toCodeModeTools(await client.tools());
+```
+
 ### Error Classes
 
 ```ts

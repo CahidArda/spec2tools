@@ -122,7 +122,7 @@ async function startAgent(options: StartOptions): Promise<void> {
     };
 
     // Start chat loop
-    await startChatLoop(session, aiTools);
+    await startChatLoop(session, aiTools, options.codeMode ?? false);
   } catch (error) {
     spinner.fail();
 
@@ -149,7 +149,7 @@ async function startAgent(options: StartOptions): Promise<void> {
   }
 }
 
-async function startChatLoop(session: Session, aiTools: ToolSet): Promise<void> {
+async function startChatLoop(session: Session, aiTools: ToolSet, codeMode: boolean): Promise<void> {
   // Initialize agent
   const agent = new Agent({ tools: aiTools });
 
@@ -180,7 +180,7 @@ async function startChatLoop(session: Session, aiTools: ToolSet): Promise<void> 
       rl.pause();
 
       try {
-        await handleInput(trimmedInput, session, agent);
+        await handleInput(trimmedInput, session, agent, codeMode, aiTools);
       } catch (error) {
         console.error(
           chalk.red(
@@ -205,11 +205,13 @@ async function startChatLoop(session: Session, aiTools: ToolSet): Promise<void> 
 async function handleInput(
   input: string,
   session: Session,
-  agent: Agent
+  agent: Agent,
+  codeMode: boolean,
+  aiTools: ToolSet
 ): Promise<void> {
   // Handle special commands
   if (input.startsWith('/')) {
-    await handleCommand(input, session, agent);
+    await handleCommand(input, session, agent, codeMode, aiTools);
     return;
   }
 
@@ -229,7 +231,9 @@ async function handleInput(
 async function handleCommand(
   input: string,
   session: Session,
-  agent: Agent
+  agent: Agent,
+  codeMode: boolean,
+  aiTools: ToolSet
 ): Promise<void> {
   const parts = input.slice(1).split(/\s+/);
   const command = parts[0].toLowerCase();
@@ -237,7 +241,11 @@ async function handleCommand(
 
   switch (command) {
     case 'tools':
-      listTools(session.tools);
+      if (codeMode) {
+        listCodeModeTools(aiTools);
+      } else {
+        listTools(session.tools);
+      }
       break;
 
     case 'call':
@@ -275,6 +283,18 @@ function listTools(tools: Tool[]): void {
     const signature = formatToolSignature(tool);
     console.log(chalk.cyan(`${index + 1}. ${signature}`));
     console.log(chalk.dim(`   ${tool.description}`));
+  });
+
+  console.log('');
+}
+
+function listCodeModeTools(aiTools: ToolSet): void {
+  console.log(chalk.bold('\nCode mode tools:'));
+
+  Object.entries(aiTools).forEach(([name, t], index) => {
+    const desc = 'description' in t ? (t.description as string) || '' : '';
+    console.log(chalk.cyan(`${index + 1}. ${name}`));
+    console.log(chalk.dim(`   ${desc}`));
   });
 
   console.log('');

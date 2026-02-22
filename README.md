@@ -44,19 +44,38 @@ export OPENAI_API_KEY=your-api-key
 npx @spec2tools/cli start --spec https://api.example.com/openapi.json
 ```
 
-### Using as MCP Server (with Claude Desktop)
+### Using as MCP Server
 
-Add to your `claude_desktop_config.json`:
+```bash
+# Add to Claude Code (or any MCP client)
+claude mcp add --transport stdio my-api \
+  -- npx @spec2tools/stdio-mcp ./path/to/openapi.yaml
+```
 
-```json
-{
-  "mcpServers": {
-    "my-api": {
-      "command": "npx",
-      "args": ["@spec2tools/stdio-mcp", "./path/to/openapi.yaml"]
-    }
-  }
-}
+### Code Mode
+
+Collapse all API endpoints into just 2 tools (`search` + `execute`), cutting input token usage by ~99.9%:
+
+```bash
+# MCP server with code mode
+claude mcp add --transport stdio my-api \
+  -- npx @spec2tools/stdio-mcp ./openapi.yaml --code-mode
+```
+
+```ts
+// SDK with code mode
+const tools = await createTools({
+  spec: './openapi.yaml',
+  codeMode: true,
+});
+```
+
+You can also convert any existing AI SDK tools to code mode:
+
+```ts
+import { toCodeModeTools } from '@spec2tools/core';
+
+const codeModeTools = toCodeModeTools(existingTools);
 ```
 
 ## Thesis
