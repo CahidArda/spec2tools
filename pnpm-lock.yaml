@@ -12,17 +12,42 @@ importers:
         specifier: ^2.27.0
         version: 2.29.8(@types/node@22.19.7)
 
+  examples/sdk-tanstack-node:
+    dependencies:
+      '@spec2tools/sdk-tanstack':
+        specifier: workspace:*
+        version: link:../../packages/sdk-tanstack
+      '@tanstack/ai':
+        specifier: ^0.6.3
+        version: 0.6.3
+      '@tanstack/ai-openai':
+        specifier: ^0.6.0
+        version: 0.6.0(@tanstack/ai@0.6.3)(zod@4.3.6)
+      zod:
+        specifier: ^4.0.0
+        version: 4.3.6
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.7
+      tsx:
+        specifier: ^4.0.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+
   packages/cli:
     dependencies:
       '@ai-sdk/openai':
         specifier: ^3.0.25
-        version: 3.0.25(zod@3.25.76)
+        version: 3.0.25(zod@4.3.6)
       '@spec2tools/core':
         specifier: workspace:*
         version: link:../core
       ai:
         specifier: ^6.0.68
-        version: 6.0.68(zod@3.25.76)
+        version: 6.0.68(zod@4.3.6)
       chalk:
         specifier: ^5.3.0
         version: 5.6.2
@@ -78,7 +103,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.0.18
-        version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(yaml@2.8.2)
+        version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(tsx@4.21.0)(yaml@2.8.2)
 
   packages/sdk:
     dependencies:
@@ -100,7 +125,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.0.18
-        version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(yaml@2.8.2)
+        version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(tsx@4.21.0)(yaml@2.8.2)
 
   packages/sdk-tanstack:
     dependencies:
@@ -128,7 +153,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.0.18
-        version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(yaml@2.8.2)
+        version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(tsx@4.21.0)(yaml@2.8.2)
 
   packages/stdio-mcp:
     dependencies:
@@ -642,6 +667,12 @@ packages:
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
 
+  '@tanstack/ai-openai@0.6.0':
+    resolution: {integrity: sha512-CSDgYr63ftw+nGb1IpB+3qIOngLE1pZjasiaeOdDQ6CbSEJDNcR7VNmyTx3RsoTh9fChKbLhJzYpem1Mpag2og==}
+    peerDependencies:
+      '@tanstack/ai': ^0.6.1
+      zod: ^4.0.0
+
   '@tanstack/ai@0.6.3':
     resolution: {integrity: sha512-uCuP27PScfJXAKS/laqinlVSFSzPc2RMgXj0d7S7f6aqoIP/ack/0t5HjLdFgRMEOJ1wxbYmUV5Ln94wYg5t8Q==}
     engines: {node: '>=18'}
@@ -1040,6 +1071,9 @@ packages:
     resolution: {integrity: sha512-sTSfBjoXBp89JvIKIefqw7U2CCebsc74kiY6awiGogKtoSGbgjYE/G/+l9sF3MWFPNc9IcoOC4ODfKHfxFmp0g==}
     engines: {node: '>= 0.4'}
 
+  get-tsconfig@4.13.6:
+    resolution: {integrity: sha512-shZT/QMiSHc/YBLxxOkMtgSid5HFoauqCE3/exfsEcwg1WkeqjG+V40yBbBrsD+jW2HDXcs28xOfcbm2jI8Ddw==}
+
   glob-parent@5.1.2:
     resolution: {integrity: sha512-AOIgSQCepiJYwP3ARnGx+5VnTu2HBYdzbGP45eLw1vr3zB3vZLeyed1sC9hnbcOc9/SrMyM5RPQrkGz4aS9Zow==}
     engines: {node: '>= 6'}
@@ -1253,6 +1287,18 @@ packages:
     resolution: {integrity: sha512-YgBpdJHPyQ2UE5x+hlSXcnejzAvD0b22U2OuAP+8OnlJT+PjWPxtgmGqKKc+RgTM63U9gN0YzrYc71R2WT/hTA==}
     engines: {node: '>=18'}
 
+  openai@6.27.0:
+    resolution: {integrity: sha512-osTKySlrdYrLYTt0zjhY8yp0JUBmWDCN+Q+QxsV4xMQnnoVFpylgKGgxwN8sSdTNw0G4y+WUXs4eCMWpyDNWZQ==}
+    hasBin: true
+    peerDependencies:
+      ws: ^8.18.0
+      zod: ^3.25 || ^4.0
+    peerDependenciesMeta:
+      ws:
+        optional: true
+      zod:
+        optional: true
+
   ora@8.2.0:
     resolution: {integrity: sha512-weP+BZ8MVNnlCm8c0Qdc1WSWq4Qn7I+9CJGm7Qali6g44e/PUzbjNqJX5NJ9ljlNMosfJvg1fKEGILklK9cwnw==}
     engines: {node: '>=18'}
@@ -1369,6 +1415,9 @@ packages:
   resolve-from@5.0.0:
     resolution: {integrity: sha512-qYg9KP24dD5qka9J47d0aVky0N+b4fTU89LN9iDnjB5waksiC49rvMB0PrUJQGoTmH50XPiqOvAjDfaijGxYZw==}
     engines: {node: '>=8'}
+
+  resolve-pkg-maps@1.0.0:
+    resolution: {integrity: sha512-seS2Tj26TBVOC2NIc2rOe2y2ZO7efxITtLZcGSOnHHNOQ7CkiUBfw0Iw2ck6xkIhPwLhKNLS8BO+hEpngQlqzw==}
 
   restore-cursor@5.1.0:
     resolution: {integrity: sha512-oMA2dcrw6u0YfxJQXm342bFKX/E4sG9rbTzO9ptUcR/e8A33cHuvStiYOwH7fszkZlZ1z/ta9AAoPk2F4qIOHA==}
@@ -1518,6 +1567,11 @@ packages:
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
+  tsx@4.21.0:
+    resolution: {integrity: sha512-5C1sg4USs1lfG0GFb2RLXsdpXqBSEhAaA/0kPL01wxzpMqLILNxIxIOKiILz+cdg/pLnOUxFYOR5yhHU666wbw==}
+    engines: {node: '>=18.0.0'}
+    hasBin: true
+
   type-is@2.0.1:
     resolution: {integrity: sha512-OZs6gsjF4vMp32qrCbiVSkrFmXtG/AZhY3t0iAMrMBiAZyV9oALtXO8hsrHbMXF9x6L3grlFuwW2oAz7cav+Gw==}
     engines: {node: '>= 0.6'}
@@ -1646,6 +1700,9 @@ packages:
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
+  zod@4.3.6:
+    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
+
 snapshots:
 
   '@ai-sdk/gateway@3.0.32(zod@3.25.76)':
@@ -1655,6 +1712,13 @@ snapshots:
       '@vercel/oidc': 3.1.0
       zod: 3.25.76
 
+  '@ai-sdk/gateway@3.0.32(zod@4.3.6)':
+    dependencies:
+      '@ai-sdk/provider': 3.0.7
+      '@ai-sdk/provider-utils': 4.0.13(zod@4.3.6)
+      '@vercel/oidc': 3.1.0
+      zod: 4.3.6
+
   '@ai-sdk/mcp@1.0.21(zod@3.25.76)':
     dependencies:
       '@ai-sdk/provider': 3.0.8
@@ -1662,11 +1726,11 @@ snapshots:
       pkce-challenge: 5.0.1
       zod: 3.25.76
 
-  '@ai-sdk/openai@3.0.25(zod@3.25.76)':
+  '@ai-sdk/openai@3.0.25(zod@4.3.6)':
     dependencies:
       '@ai-sdk/provider': 3.0.7
-      '@ai-sdk/provider-utils': 4.0.13(zod@3.25.76)
-      zod: 3.25.76
+      '@ai-sdk/provider-utils': 4.0.13(zod@4.3.6)
+      zod: 4.3.6
 
   '@ai-sdk/provider-utils@4.0.13(zod@3.25.76)':
     dependencies:
@@ -1674,6 +1738,13 @@ snapshots:
       '@standard-schema/spec': 1.1.0
       eventsource-parser: 3.0.6
       zod: 3.25.76
+
+  '@ai-sdk/provider-utils@4.0.13(zod@4.3.6)':
+    dependencies:
+      '@ai-sdk/provider': 3.0.7
+      '@standard-schema/spec': 1.1.0
+      eventsource-parser: 3.0.6
+      zod: 4.3.6
 
   '@ai-sdk/provider-utils@4.0.15(zod@3.25.76)':
     dependencies:
@@ -2108,6 +2179,14 @@ snapshots:
 
   '@standard-schema/spec@1.1.0': {}
 
+  '@tanstack/ai-openai@0.6.0(@tanstack/ai@0.6.3)(zod@4.3.6)':
+    dependencies:
+      '@tanstack/ai': 0.6.3
+      openai: 6.27.0(zod@4.3.6)
+      zod: 4.3.6
+    transitivePeerDependencies:
+      - ws
+
   '@tanstack/ai@0.6.3':
     dependencies:
       '@tanstack/devtools-event-client': 0.4.3
@@ -2183,13 +2262,13 @@ snapshots:
       chai: 6.2.2
       tinyrainbow: 3.0.3
 
-  '@vitest/mocker@4.0.18(vite@7.3.1(@types/node@22.19.7)(yaml@2.8.2))':
+  '@vitest/mocker@4.0.18(vite@7.3.1(@types/node@22.19.7)(tsx@4.21.0)(yaml@2.8.2))':
     dependencies:
       '@vitest/spy': 4.0.18
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 7.3.1(@types/node@22.19.7)(yaml@2.8.2)
+      vite: 7.3.1(@types/node@22.19.7)(tsx@4.21.0)(yaml@2.8.2)
 
   '@vitest/pretty-format@4.0.18':
     dependencies:
@@ -2225,6 +2304,14 @@ snapshots:
       '@ai-sdk/provider-utils': 4.0.13(zod@3.25.76)
       '@opentelemetry/api': 1.9.0
       zod: 3.25.76
+
+  ai@6.0.68(zod@4.3.6):
+    dependencies:
+      '@ai-sdk/gateway': 3.0.32(zod@4.3.6)
+      '@ai-sdk/provider': 3.0.7
+      '@ai-sdk/provider-utils': 4.0.13(zod@4.3.6)
+      '@opentelemetry/api': 1.9.0
+      zod: 4.3.6
 
   ajv-formats@3.0.1(ajv@8.17.1):
     optionalDependencies:
@@ -2543,6 +2630,10 @@ snapshots:
       dunder-proto: 1.0.1
       es-object-atoms: 1.1.1
 
+  get-tsconfig@4.13.6:
+    dependencies:
+      resolve-pkg-maps: 1.0.0
+
   glob-parent@5.1.2:
     dependencies:
       is-glob: 4.0.3
@@ -2712,6 +2803,10 @@ snapshots:
       is-inside-container: 1.0.0
       wsl-utils: 0.1.0
 
+  openai@6.27.0(zod@4.3.6):
+    optionalDependencies:
+      zod: 4.3.6
+
   ora@8.2.0:
     dependencies:
       chalk: 5.6.2
@@ -2810,6 +2905,8 @@ snapshots:
   require-from-string@2.0.2: {}
 
   resolve-from@5.0.0: {}
+
+  resolve-pkg-maps@1.0.0: {}
 
   restore-cursor@5.1.0:
     dependencies:
@@ -2991,6 +3088,13 @@ snapshots:
   tslib@2.8.1:
     optional: true
 
+  tsx@4.21.0:
+    dependencies:
+      esbuild: 0.27.3
+      get-tsconfig: 4.13.6
+    optionalDependencies:
+      fsevents: 2.3.3
+
   type-is@2.0.1:
     dependencies:
       content-type: 1.0.5
@@ -3007,7 +3111,7 @@ snapshots:
 
   vary@1.1.2: {}
 
-  vite@7.3.1(@types/node@22.19.7)(yaml@2.8.2):
+  vite@7.3.1(@types/node@22.19.7)(tsx@4.21.0)(yaml@2.8.2):
     dependencies:
       esbuild: 0.27.3
       fdir: 6.5.0(picomatch@4.0.3)
@@ -3018,12 +3122,13 @@ snapshots:
     optionalDependencies:
       '@types/node': 22.19.7
       fsevents: 2.3.3
+      tsx: 4.21.0
       yaml: 2.8.2
 
-  vitest@4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(yaml@2.8.2):
+  vitest@4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(tsx@4.21.0)(yaml@2.8.2):
     dependencies:
       '@vitest/expect': 4.0.18
-      '@vitest/mocker': 4.0.18(vite@7.3.1(@types/node@22.19.7)(yaml@2.8.2))
+      '@vitest/mocker': 4.0.18(vite@7.3.1(@types/node@22.19.7)(tsx@4.21.0)(yaml@2.8.2))
       '@vitest/pretty-format': 4.0.18
       '@vitest/runner': 4.0.18
       '@vitest/snapshot': 4.0.18
@@ -3040,7 +3145,7 @@ snapshots:
       tinyexec: 1.0.2
       tinyglobby: 0.2.15
       tinyrainbow: 3.0.3
-      vite: 7.3.1(@types/node@22.19.7)(yaml@2.8.2)
+      vite: 7.3.1(@types/node@22.19.7)(tsx@4.21.0)(yaml@2.8.2)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@opentelemetry/api': 1.9.0
@@ -3080,3 +3185,5 @@ snapshots:
       zod: 3.25.76
 
   zod@3.25.76: {}
+
+  zod@4.3.6: {}
