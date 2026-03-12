@@ -1,5 +1,5 @@
 import { tool, generateText } from 'ai';
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import {
   Monty,

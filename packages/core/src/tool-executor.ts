@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import { Tool, HttpMethod, AuthConfig, ParameterMetadata } from './types.js';
 import { ToolExecutionError } from './errors.js';
 import { AuthManager } from './auth-manager.js';

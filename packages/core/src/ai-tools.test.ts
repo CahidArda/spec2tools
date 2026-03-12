@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import { toAISDKTools } from './ai-tools.js';
 import type { Tool } from './types.js';
 
