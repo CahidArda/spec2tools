@@ -6,6 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "tsx index.ts",
+    "start:code-mode": "tsx code-mode.ts",
+    "start:convert": "tsx convert-code-mode.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
