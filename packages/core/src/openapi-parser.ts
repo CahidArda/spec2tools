@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import { readFile } from 'fs/promises';
 import { parse as parseYaml } from 'yaml';
 import {

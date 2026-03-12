@@ -75,7 +75,7 @@ importers:
         version: 0.0.7
       ai:
         specifier: ^6.0.68
-        version: 6.0.68(zod@3.25.76)
+        version: 6.0.68(zod@4.3.6)
       express:
         specifier: ^5.0.0
         version: 5.2.1
@@ -86,11 +86,11 @@ importers:
         specifier: ^2.5.0
         version: 2.8.2
       zod:
-        specifier: ^3.24.0
-        version: 3.25.76
+        specifier: ^3.25.0 || ^4.0.0
+        version: 4.3.6
       zod-to-json-schema:
         specifier: ^3.24.0
-        version: 3.25.1(zod@3.25.76)
+        version: 3.25.1(zod@4.3.6)
     devDependencies:
       '@types/express':
         specifier: ^5.0.0
@@ -112,10 +112,10 @@ importers:
         version: link:../core
       ai:
         specifier: ^6.0.68
-        version: 6.0.68(zod@3.25.76)
+        version: 6.0.68(zod@4.3.6)
       zod:
-        specifier: ^3.24.0
-        version: 3.25.76
+        specifier: ^3.25.0 || ^4.0.0
+        version: 4.3.6
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
@@ -139,11 +139,11 @@ importers:
         specifier: ^0.6.3
         version: 0.6.3
       zod:
-        specifier: ^3.24.0
-        version: 3.25.76
+        specifier: ^3.25.0 || ^4.0.0
+        version: 4.3.6
       zod-to-json-schema:
         specifier: ^3.24.0
-        version: 3.25.1(zod@3.25.76)
+        version: 3.25.1(zod@4.3.6)
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
@@ -3183,6 +3183,10 @@ snapshots:
   zod-to-json-schema@3.25.1(zod@3.25.76):
     dependencies:
       zod: 3.25.76
+
+  zod-to-json-schema@3.25.1(zod@4.3.6):
+    dependencies:
+      zod: 4.3.6
 
   zod@3.25.76: {}
 

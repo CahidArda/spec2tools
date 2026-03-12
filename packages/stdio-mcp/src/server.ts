@@ -63,7 +63,8 @@ export async function startMcpServer(options: McpServerOptions): Promise<void> {
       : { type: 'sse' as const, url: options.sseUrl!, headers: { Authorization: `Bearer ${options.apiKey || ''}` } };
 
     mcpClient = await createMCPClient({ transport });
-    tools = await mcpClient.tools() as ToolSet;
+    // TODO: remove the double cast. it was added to fix a "Type instantiation is excessively deep and possibly infinite" error
+    tools = await mcpClient.tools() as unknown as ToolSet;
 
     if (options.codeMode) {
       tools = toCodeModeTools(tools);
@@ -107,7 +108,7 @@ export async function startMcpServer(options: McpServerOptions): Promise<void> {
           if ('jsonSchema' in schemaObj && schemaObj.jsonSchema) {
             inputSchema = schemaObj.jsonSchema as Record<string, unknown>;
           } else if ('_def' in schemaObj) {
-            inputSchema = zodToJsonSchema(schema as import('zod').ZodType, { target: 'jsonSchema7' }) as Record<string, unknown>;
+            inputSchema = zodToJsonSchema(schema as import('zod/v3').ZodType, { target: 'jsonSchema7' }) as Record<string, unknown>;
           }
         }
 

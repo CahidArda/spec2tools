@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import { tool } from 'ai';
 import { toCodeModeTools } from './code-mode.js';
 

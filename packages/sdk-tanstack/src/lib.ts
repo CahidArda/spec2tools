@@ -8,7 +8,7 @@ import {
 } from '@spec2tools/core';
 import { toolDefinition, type ServerTool, type JSONSchema } from '@tanstack/ai';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import {
   Monty,
   MontySnapshot,
