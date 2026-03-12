@@ -25,7 +25,7 @@ for await (const chunk of stream) {
   if (chunk.type === "TOOL_CALL_START") {
     console.log(` > Tool call started: ${chunk.toolName}\n`);
   } else if (chunk.type === "TOOL_CALL_END") {
-    console.log(` > Tool call ended: ${chunk.toolName}\n`);
+    console.log(` > Tool call parameters: ${JSON.stringify(chunk.input)}\n`);
   } else if (chunk.type === "TEXT_MESSAGE_CONTENT") {
     process.stdout.write(chunk.delta); // Stream text content to console
   }
