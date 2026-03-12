@@ -37,6 +37,7 @@
     "directory": "packages/sdk-tanstack"
   },
   "dependencies": {
+    "@pydantic/monty": "^0.0.7",
     "@spec2tools/core": "workspace:*",
     "@tanstack/ai": "^0.6.3",
     "zod": "^3.24.0",

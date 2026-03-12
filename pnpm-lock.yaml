@@ -104,6 +104,9 @@ importers:
 
   packages/sdk-tanstack:
     dependencies:
+      '@pydantic/monty':
+        specifier: ^0.0.7
+        version: 0.0.7
       '@spec2tools/core':
         specifier: workspace:*
         version: link:../core
