@@ -1,4 +1,4 @@
-import { chat, streamToText } from '@tanstack/ai';
+import { chat } from '@tanstack/ai';
 import { openaiText } from '@tanstack/ai-openai';
 import { createTools } from '@spec2tools/sdk-tanstack';
 import path from 'path';
@@ -11,7 +11,7 @@ const SPEC = path.resolve(__dirname, '../../packages/cli/examples/sample-api.yam
 
 const prompt = process.argv[2] ?? 'List the first 3 users and tell me their names.';
 
-console.log(`Prompt: ${prompt}\n`);
+console.log(` > Prompt: ${prompt}\n`);
 
 const tools = await createTools({ spec: SPEC });
 
@@ -21,5 +21,12 @@ const stream = chat({
   tools,
 });
 
-const text = await streamToText(stream);
-console.log(text);
+for await (const chunk of stream) {
+  if (chunk.type === "TOOL_CALL_START") {
+    console.log(` > Tool call started: ${chunk.toolName}\n`);
+  } else if (chunk.type === "TOOL_CALL_END") {
+    console.log(` > Tool call ended: ${chunk.toolName}\n`);
+  } else if (chunk.type === "TEXT_MESSAGE_CONTENT") {
+    process.stdout.write(chunk.delta); // Stream text content to console
+  }
+}
