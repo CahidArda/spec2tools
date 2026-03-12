@@ -5,9 +5,9 @@
   "description": "Node.js example: generate TanStack AI tools from an OpenAPI spec",
   "type": "module",
   "scripts": {
-    "start": "tsx index.ts",
-    "start:code-mode": "tsx code-mode.ts",
-    "start:convert": "tsx convert-code-mode.ts",
+    "start": "tsx example-basic.ts",
+    "start:code-mode": "tsx example-code-mode.ts",
+    "start:convert": "tsx example-convert-code-mode.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

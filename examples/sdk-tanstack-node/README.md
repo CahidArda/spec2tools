@@ -19,7 +19,7 @@ pnpm install
 
 ## Examples
 
-### 1. `index.ts` — one tool per endpoint
+### 1. `example-basic.ts` — one tool per endpoint
 
 Generates one `ServerTool` per OpenAPI operation and passes them all to `chat()`.
 
@@ -35,7 +35,7 @@ pnpm start "How many posts does user 1 have?"
 
 ---
 
-### 2. `code-mode.ts` — collapsed into 2 tools via `codeMode`
+### 2. `example-code-mode.ts` — collapsed into 2 tools via `codeMode`
 
 Passes `codeMode: true` to `createTools`, collapsing all endpoints into just two tools: `search` and `execute`. The model discovers endpoints with `search` then calls them by writing Python code in `execute`. Significantly reduces token usage for large APIs.
 
@@ -51,7 +51,7 @@ pnpm start:code-mode "How many posts does user 1 have?"
 
 ---
 
-### 3. `convert-code-mode.ts` — `convertToolsToCodeMode` with hand-written tools
+### 3. `example-convert-code-mode.ts` — `convertToolsToCodeMode` with hand-written tools
 
 Shows that `convertToolsToCodeMode` works with **any** `ServerTool[]`, not only tools generated from an OpenAPI spec. Two simple math tools are created manually with `toolDefinition().server()`, then converted to code mode.
 
