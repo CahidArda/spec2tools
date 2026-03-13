@@ -1,5 +1,12 @@
 # @spec2tools/cli
 
+## 0.2.2
+
+### Patch Changes
+
+- Updated dependencies [cc25602]
+  - @spec2tools/core@0.2.1
+
 ## 0.2.1
 
 ### Patch Changes
