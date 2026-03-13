@@ -1,6 +1,6 @@
 {
   "name": "@spec2tools/sdk-tanstack",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Create TanStack AI tools from OpenAPI specifications",
   "type": "module",
   "main": "dist/index.js",

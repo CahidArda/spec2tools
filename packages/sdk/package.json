@@ -1,6 +1,6 @@
 {
   "name": "@spec2tools/sdk",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Create AI SDK tools from OpenAPI specifications",
   "type": "module",
   "main": "dist/index.js",
