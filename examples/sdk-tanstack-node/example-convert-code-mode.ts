@@ -3,7 +3,7 @@ import { openaiText } from '@tanstack/ai-openai';
 import { convertToolsToCodeMode } from '@spec2tools/sdk-tanstack';
 
 const prompt =
-  process.argv[2] ?? 'What is 42 multiplied by 7? Then add 15 to the result.';
+  process.argv[2] ?? 'What is 42 multiplied by 7? Then add 15 to the result. Use tools for calculations.';
 
 console.log(` > Prompt: ${prompt}\n`);
 
@@ -56,7 +56,11 @@ for await (const chunk of stream) {
   if (chunk.type === 'TOOL_CALL_START') {
     console.log(` > Tool call started: ${chunk.toolName}\n`);
   } else if (chunk.type === 'TOOL_CALL_END') {
-    console.log(` > Tool call parameters: ${JSON.stringify(chunk.input)}\n`);
+    if (chunk.input) {
+      console.log(` > Tool call parameters: ${JSON.stringify(chunk.input)}\n`);
+    } else {
+      console.log(` > Tool call result: ${JSON.stringify(chunk.result).slice(0, 40)}...\n`);
+    }
   } else if (chunk.type === 'TEXT_MESSAGE_CONTENT') {
     process.stdout.write(chunk.delta);
   }
