@@ -73,7 +73,7 @@ describe('createTools', () => {
     ) as string;
 
     expect(result).toContain('searchTweets');
-    expect(result).toContain('Search X posts');
+    expect(result).toContain('Search posts by query');
   });
 
   describe('codeMode', () => {
